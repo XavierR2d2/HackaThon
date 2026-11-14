@@ -2083,7 +2083,9 @@ button {
   color: #ef4444;
 }
 
-.nav-labor-btn.active {
+.nav-transcript-btn.active,
+.nav-labor-btn.active,
+.nav-jobs-btn.active {
   background: rgba(0, 240, 255, 0.2);
   border-color: var(--accent-primary);
   color: var(--accent-primary);

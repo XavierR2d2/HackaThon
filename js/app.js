@@ -49,6 +49,56 @@ document.addEventListener('DOMContentLoaded', () => {
     return cleanName;
   };
 
+  // Operational Transcript (Start-up Screen) Controller
+  window.openOperationalTranscript = function () {
+    const isLaborOpen = window.laborEngine && window.laborEngine.isLaborOpen && window.laborEngine.isLaborOpen();
+    const isJobsOpen = window.jobsEngine && window.jobsEngine.isJobsOpen && window.jobsEngine.isJobsOpen();
+
+    if (window.laborEngine && window.laborEngine.isLaborOpen && window.laborEngine.isLaborOpen()) {
+      window.laborEngine.closeManageLabor();
+    }
+    if (window.jobsEngine && window.jobsEngine.isJobsOpen && window.jobsEngine.isJobsOpen()) {
+      window.jobsEngine.closeJobs();
+    }
+
+    const chatSection = document.querySelector('.chat-section');
+    const actionSidebar = document.querySelector('.action-sidebar');
+    const manageLaborSection = document.getElementById('manageLaborSection');
+    const jobsSection = document.getElementById('jobsSection');
+    const navTranscriptBtn = document.getElementById('navTranscriptBtn');
+    const navLaborBtn = document.getElementById('navManageLaborBtn');
+    const navJobsBtn = document.getElementById('navJobsBtn');
+
+    if (manageLaborSection) manageLaborSection.style.display = 'none';
+    if (jobsSection) jobsSection.style.display = 'none';
+    if (chatSection) {
+      chatSection.style.display = '';
+      chatSection.classList.remove('fade-out');
+      chatSection.classList.add('fade-in');
+    }
+    if (actionSidebar) {
+      actionSidebar.style.display = '';
+      actionSidebar.classList.remove('fade-out');
+      actionSidebar.classList.add('fade-in');
+    }
+
+    if (navTranscriptBtn) navTranscriptBtn.classList.add('active');
+    if (navLaborBtn) navLaborBtn.classList.remove('active');
+    if (navJobsBtn) navJobsBtn.classList.remove('active');
+
+    if (!isLaborOpen && !isJobsOpen) {
+      return 'You are already on the Operational Transcript screen, sir.';
+    }
+    return 'Opening Operational Transcript screen, sir.';
+  };
+
+  const navTranscriptBtn = document.getElementById('navTranscriptBtn');
+  if (navTranscriptBtn) {
+    navTranscriptBtn.addEventListener('click', () => {
+      window.openOperationalTranscript();
+    });
+  }
+
   // Elements
   const chatMessages = document.getElementById('chatMessages');
   const inputForm = document.getElementById('inputForm');

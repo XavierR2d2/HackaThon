@@ -32,7 +32,11 @@ class CommandEngine {
 
     const lower = input.toLowerCase();
 
-    // 0. Jobs & Cleanroom Assignments Directives
+    // 0. Operational Transcript / Start-up Screen Directives
+    const transcriptResult = this.handleTranscriptCommand(lower, input);
+    if (transcriptResult) return transcriptResult;
+
+    // 1. Jobs & Cleanroom Assignments Directives
     const jobsResult = this.handleJobsCommand(lower, input);
     if (jobsResult) return jobsResult;
 
@@ -84,14 +88,36 @@ class CommandEngine {
   }
 
   /* ----------------------------------------------------
+     OPERATIONAL TRANSCRIPT / START-UP SCREEN DIRECTIVES
+     ---------------------------------------------------- */
+  handleTranscriptCommand(lower, original) {
+    if (!window.openOperationalTranscript) return null;
+
+    // Directives to open the Operational Transcript / Start-up Screen:
+    // e.g. "open operational transcript", "open transcript", "open start-up screen", "go to startup screen", "open transcript tab"
+    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display|return\s+to)\s+(?:the\s+)?(?:operational\s+)?(?:transcript|start-?up(?:\s+screen)?|startup(?:\s+screen)?|hud|console|chat)(?:\s+(?:screen|tab|feed|view))?/i.test(lower) ||
+        /^(?:operational\s+transcript|transcript|start-?up\s+screen|startup\s+screen|start-?up|startup|hud|operational\s+hud)(?:\s+(?:screen|tab))?$/i.test(lower)) {
+      const resp = window.openOperationalTranscript();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '💬 Operational Transcript',
+        actionType: 'transcript'
+      };
+    }
+
+    return null;
+  }
+
+  /* ----------------------------------------------------
      JOBS & ASSIGNMENTS DIRECTIVES
      ---------------------------------------------------- */
   handleJobsCommand(lower, original) {
     if (!window.jobsEngine) return null;
 
-    // 1. Open Jobs: "[AI NAME], open Jobs", "go to Jobs", "flip to Jobs", "show Jobs"
-    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display)\s+(?:the\s+)?jobs/i.test(lower) ||
-        /^(?:jobs|cleanroom\s+jobs|assignments|open\s+jobs)$/i.test(lower)) {
+    // 1. Open Jobs: "[AI NAME], open Jobs", "go to Jobs", "flip to Jobs", "show Jobs", "open jobs tab"
+    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display)\s+(?:the\s+)?jobs(?:\s+tab)?/i.test(lower) ||
+        /^(?:jobs|cleanroom\s+jobs|assignments|open\s+jobs)(?:\s+tab)?$/i.test(lower)) {
       const resp = window.jobsEngine.openJobs();
       return {
         handled: true,
@@ -190,9 +216,9 @@ class CommandEngine {
   handleLaborCommand(lower, original) {
     if (!window.laborEngine) return null;
 
-    // 1. Open Manage Labor: "[AI NAME], open Manage Labor", "go to Manage Labor", "flip to Manage Labor", "manage labor"
-    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display)\s+(?:the\s+)?manage\s+labor/i.test(lower) ||
-        /^(?:manage\s+labor|labor\s+management|open\s+labor)$/i.test(lower)) {
+    // 1. Open Manage Labor: "[AI NAME], open Manage Labor", "open the manage labor tab", "go to Manage Labor", "open labor", "manage labor tab"
+    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display)\s+(?:the\s+)?(?:manage\s+)?labor(?:\s+tab)?/i.test(lower) ||
+        /^(?:manage\s+labor|labor\s+management|open\s+labor|labor)(?:\s+tab)?$/i.test(lower)) {
       const resp = window.laborEngine.openManageLabor();
       return {
         handled: true,

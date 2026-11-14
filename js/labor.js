@@ -661,6 +661,7 @@ class LaborEngine {
     const jobsSection = document.getElementById('jobsSection');
     const navBtn = document.getElementById('navManageLaborBtn');
     const navJobsBtn = document.getElementById('navJobsBtn');
+    const navTranscriptBtn = document.getElementById('navTranscriptBtn');
 
     if (chatSection) chatSection.style.display = 'none';
     if (actionSidebar) actionSidebar.style.display = 'none';
@@ -672,6 +673,7 @@ class LaborEngine {
     }
     if (navBtn) navBtn.classList.add('active');
     if (navJobsBtn) navJobsBtn.classList.remove('active');
+    if (navTranscriptBtn) navTranscriptBtn.classList.remove('active');
 
     if (window.jobsEngine) window.jobsEngine.isViewOpen = false;
 
@@ -689,6 +691,7 @@ class LaborEngine {
     const actionSidebar = document.querySelector('.action-sidebar');
     const manageLaborSection = document.getElementById('manageLaborSection');
     const navBtn = document.getElementById('navManageLaborBtn');
+    const navTranscriptBtn = document.getElementById('navTranscriptBtn');
 
     if (manageLaborSection) {
       manageLaborSection.style.display = 'none';
@@ -701,6 +704,7 @@ class LaborEngine {
       actionSidebar.style.display = '';
     }
     if (navBtn) navBtn.classList.remove('active');
+    if (navTranscriptBtn) navTranscriptBtn.classList.add('active');
 
     return 'Returning to operational interface, sir.';
   }
