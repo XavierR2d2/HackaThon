@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMAT // MES Workstation — Hands-Free Voice Control</title>
+
+    <!-- Google Fonts: Space Grotesk & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0B1120',
+                        card: '#111827',
+                        cardHover: '#182236',
+                        amatCyan: '#0096D6',
+                        amatCyanGlow: '#00B4D8',
+                        verifiedEmerald: '#10B981',
+                        inspectorAmber: '#F59E0B',
+                        alertCrimson: '#EF4444',
+                    },
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom subtle cleanroom grid and scrollbar */
+        body {
+            background-color: #0B1120;
+            background-image: radial-gradient(circle at 1px 1px, rgba(0, 150, 214, 0.12) 1px, transparent 0);
+            background-size: 28px 28px;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B1120;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            70% { transform: scale(1.25); opacity: 0; }
+            100% { transform: scale(1.25); opacity: 0; }
+        }
+        .mic-pulse::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: inherit;
+            border: 2px solid #00B4D8;
+            animation: pulseRing 1.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-amatCyan selection:text-white">
+
+    <!-- =====================================================================
+         1. TOP NAVIGATION / MES HEADER BAR
+    ====================================================================== -->
+    <header class="sticky top-0 z-30 bg-[#0B1120]/95 backdrop-blur-md border-b border-slate-800 shadow-lg">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Brand & Work Order Context -->
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amatCyan to-blue-700 flex items-center justify-center shadow-lg shadow-amatCyan/25 flex-shrink-0">
+                    <!-- Semiconductor Wafer / Precision Emblem -->
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 3v18M3 12h18M7.5 4.2v15.6M16.5 4.2v15.6M4.2 7.5h15.6M4.2 16.5h15.6" stroke-opacity="0.6" stroke-width="1.2"/>
+                        <path d="M9 20.5h6" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-base sm:text-lg tracking-tight text-white">AMAT // MES WORKSTATION</span>
+                        <span class="hidden sm:inline-block font-mono text-[11px] px-2 py-0.5 rounded bg-amatCyan/15 text-amatCyanGlow border border-amatCyan/30">
+                            BAY-04 CLEANROOM
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-slate-400 mt-0.5">
+                        <span>WO: <strong class="text-slate-200">WO-8842-CVD</strong></span>
+                        <span>•</span>
+                        <span>TOOL: <strong class="text-slate-200">PRODUCER® GT™</strong></span>
+                        <span>•</span>
+                        <span>TECH: <strong class="text-amatCyanGlow">J. CHEN (#4092)</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operation Selector -->
+            <div class="flex items-center gap-2 bg-card border border-slate-700/80 rounded-xl p-1.5">
+                <label for="operation-select" class="font-mono text-[11px] text-slate-400 uppercase pl-2 hidden md:inline">Operation:</label>
+                <select id="operation-select" onchange="switchOperation(this.value)" class="bg-obsidian text-white font-semibold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-amatCyanGlow cursor-pointer">
+                    <option value="op10">OP 10: Chamber Assembly</option>
+                    <option value="op20">OP 20: Vacuum Seal & Leak Check</option>
+                    <option value="op30">OP 30: RF Generator Calibration</option>
+                </select>
+            </div>
+
+            <!-- Live Labor Clock & Simulate Quality Alert Trigger -->
+            <div class="flex items-center gap-3">
+                <!-- Labor Clock Widget -->
+                <div id="labor-clock-box" class="flex items-center gap-3 px-3.5 py-2 rounded-xl bg-card border border-slate-700/80 transition-colors">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="labor-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span id="labor-status-label" class="font-mono text-[10px] uppercase tracking-wider text-slate-400">LABOR STOPPED</span>
+                        </div>
+                        <div id="labor-timer-display" class="font-mono text-base sm:text-lg font-bold text-white leading-tight">00:00:00</div>
+                    </div>
+                    <button id="labor-toggle-btn" onclick="toggleLaborClock()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono font-semibold text-amatCyanGlow border border-slate-600 transition-all active:scale-95">
+                        START
+                    </button>
+                </div>
+
+                <!-- Simulate Quality Alert Button -->
+                <button id="sim-alert-btn" onclick="triggerQualityAlert('QA-904: Particle count excursion (>15 particles @ 0.1µm) detected in Load-Lock B. Verify HEPA purge & inspect O-ring seating before proceeding.')" class="px-3.5 py-2.5 rounded-xl bg-alertCrimson/15 hover:bg-alertCrimson/25 text-alertCrimson border border-alertCrimson/50 font-mono text-xs font-semibold flex items-center gap-2 transition-all active:scale-95">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span class="hidden sm:inline">Simulate Quality Alert</span>
+                    <span class="sm:hidden">QA Alert</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- =====================================================================
+         2. BLOCKING OPEN QUALITY ALERT BANNER (SHOWN WHEN ALERT IS ACTIVE)
+    ====================================================================== -->
+    <div id="quality-alert-banner" class="hidden bg-alertCrimson text-white border-b-2 border-red-300 shadow-2xl z-20">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center gap-3">
+                <div class="p-2 rounded-lg bg-black/25 flex-shrink-0 animate-pulse">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="font-mono text-xs font-bold uppercase tracking-wider text-red-100">
+                        ⛔ OPEN QUALITY HOLD — ALL SIGN-OFFS & NAVIGATION BLOCKED
+                    </div>
+                    <p id="quality-alert-text" class="text-sm sm:text-base font-semibold mt-0.5">
+                        QA-904: Particle count excursion detected.
+                    </p>
+                </div>
+            </div>
+            <button onclick="openQualityAckModal()" class="px-5 py-2.5 rounded-xl bg-white text-red-700 hover:bg-red-50 font-bold text-xs sm:text-sm shadow-lg transition-all active:scale-95 flex-shrink-0">
+                Acknowledge Quality Alert (Manual Sign-Off)
+            </button>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         3. PUSH-TO-TALK & VOICE COMMAND CONTROL BAR
+    ====================================================================== -->
+    <section class="bg-card/90 border-b border-slate-800">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 space-y-3">
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                
+                <!-- Left: Prominent Start/Stop Voice Listening Button + Audio Mute Toggle -->
+                <div class="flex items-center gap-3">
+                    <button id="mic-toggle-btn" onclick="toggleVoiceListening()" class="relative flex items-center gap-3 px-5 py-3.5 rounded-xl bg-amatCyan hover:bg-amatCyanGlow text-white font-bold text-sm sm:text-base shadow-lg shadow-amatCyan/25 transition-all active:scale-95">
+                        <svg id="mic-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                        </svg>
+                        <span id="mic-btn-label">Start Voice Listening</span>
+                        <kbd class="hidden sm:inline-block font-mono text-[10px] px-1.5 py-0.5 rounded bg-black/25 text-sky-100 border border-white/20">SPACE</kbd>
+                    </button>
+
+                    <button id="tts-mute-btn" onclick="toggleTtsMute()" title="Toggle Spoken TTS Audio" class="p-3.5 rounded-xl bg-obsidian border border-slate-700 hover:border-slate-500 text-amatCyanGlow transition-colors">
+                        <svg id="tts-icon-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                        </svg>
+                        <svg id="tts-icon-off" class="w-5 h-5 hidden text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Center/Right: Live Transcript & Spoken Confirmation Readout -->
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Heard Transcript Box -->
+                    <div class="px-4 py-2.5 rounded-xl bg-obsidian border border-slate-800 flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="font-mono text-[10px] uppercase tracking-wider text-slate-400">Technician Voice Input</div>
+                            <div id="live-transcript" class="font-mono text-xs sm:text-sm text-slate-200 truncate mt-0.5">
+                                [Idle — Click "Start Voice Listening" or tap a test command below]
+                            </div>
+                        </div>
+                        <span id="speech-status-badge" class="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 flex-shrink-0">STANDBY</span>
+                    </div>
+
+                    <!-- System Spoken Confirmation Banner -->
+                    <div id="tts-banner" class="px-4 py-2.5 rounded-xl bg-amatCyan/10 border border-amatCyan/40 flex items-center gap-3">
+                        <div class="w-2.5 h-2.5 rounded-full bg-amatCyanGlow flex-shrink-0"></div>
+                        <div class="min-w-0">
+                            <div class="font-mono text-[10px] uppercase tracking-wider text-amatCyanGlow">System Spoken Confirmation (TTS)</div>
+                            <div id="tts-confirmation-text" class="text-xs sm:text-sm font-medium text-white truncate mt-0.5">
+                                Ready for hands-free voice commands.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Voice Command Simulation Pills (For No-Mic / Noisy Demo Environments) -->
+            <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+                <span class="font-mono text-[11px] text-slate-400 uppercase mr-1">Simulate Voice Command:</span>
+                <button onclick="simulateVoiceCommand('start labor')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-amatCyanGlow font-mono text-xs text-slate-200 transition-colors">
+                    "Start labor"
+                </button>
+                <button onclick="simulateVoiceCommand('stop labor')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-amatCyanGlow font-mono text-xs text-slate-200 transition-colors">
+                    "Stop labor"
+                </button>
+                <button onclick="simulateVoiceCommand('open instructions')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-amatCyanGlow font-mono text-xs text-slate-200 transition-colors">
+                    "Open instructions"
+                </button>
+                <button onclick="simulateVoiceCommand('next page')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-amatCyanGlow font-mono text-xs text-slate-200 transition-colors">
+                    "Next page"
+                </button>
+                <button onclick="simulateVoiceCommand('prior page')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-amatCyanGlow font-mono text-xs text-slate-200 transition-colors">
+                    "Prior page"
+                </button>
+                <button onclick="simulateVoiceCommand('sign off step 1')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-verifiedEmerald font-mono text-xs text-verifiedEmerald transition-colors">
+                    "Sign off step 1"
+                </button>
+                <button onclick="simulateVoiceCommand('sign off step 3')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-inspectorAmber font-mono text-xs text-inspectorAmber transition-colors">
+                    "Sign off step 3 (Inspector)"
+                </button>
+                <button onclick="simulateVoiceCommand('sign off page')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-verifiedEmerald font-mono text-xs text-verifiedEmerald transition-colors">
+                    "Sign off page"
+                </button>
+                <button onclick="simulateVoiceCommand('calibrate flux capacitor')" class="px-2.5 py-1 rounded-lg bg-obsidian hover:bg-slate-800 border border-slate-700 hover:border-slate-500 font-mono text-xs text-slate-400 transition-colors">
+                    "Invalid command"
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================================
+         4. MAIN WORKSPACE: WORK INSTRUCTIONS (LEFT) + LIVE AUDIT LOG (RIGHT)
+    ====================================================================== -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN (8 COLS): WORK INSTRUCTIONS PANEL -->
+        <div class="lg:col-span-8 flex flex-col gap-5">
+
+            <!-- NEW OPERATION ARRIVAL PROMPT (Shown when switching to incomplete operation) -->
+            <div id="new-op-prompt" class="hidden rounded-2xl bg-gradient-to-r from-amatCyan/20 via-card to-card border-2 border-amatCyan p-5 shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="inline-flex items-center gap-2 font-mono text-xs text-amatCyanGlow uppercase font-bold">
+                            <span class="w-2 h-2 rounded-full bg-amatCyanGlow animate-ping"></span>
+                            NEW INCOMPLETE OPERATION DETECTED
+                        </div>
+                        <h3 id="new-op-title" class="text-lg sm:text-xl font-bold text-white">
+                            Arrived at OP 20: Vacuum Seal & Leak Check
+                        </h3>
+                        <p class="text-sm text-slate-300">
+                            Speak <strong class="text-amatCyanGlow">"Start labor"</strong> to begin clock & unlock work steps, or <strong class="text-white">"View instructions"</strong> to inspect read-only steps first.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        <button onclick="simulateVoiceCommand('start labor')" class="px-4 py-2.5 rounded-xl bg-amatCyan hover:bg-amatCyanGlow text-white font-semibold text-xs sm:text-sm shadow-lg shadow-amatCyan/25 transition-all">
+                            Start Labor
+                        </button>
+                        <button onclick="simulateVoiceCommand('open instructions')" class="px-4 py-2.5 rounded-xl bg-obsidian hover:bg-slate-800 text-slate-200 font-semibold text-xs sm:text-sm border border-slate-600 transition-all">
+                            View Instructions
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operation Header & Pagination Controls -->
+            <div class="rounded-2xl bg-card border border-slate-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <span id="op-code-badge" class="font-mono text-xs px-2.5 py-1 rounded bg-amatCyan/15 text-amatCyanGlow border border-amatCyan/30 font-bold">OP 10</span>
+                        <span id="op-progress-badge" class="font-mono text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300">0 / 6 STEPS COMPLETE</span>
+                    </div>
+                    <h1 id="op-heading" class="text-xl sm:text-2xl font-bold text-white mt-2">Chamber Assembly & Pedestal Alignment</h1>
+                </div>
+
+                <!-- Page Navigation Controls -->
+                <div class="flex items-center gap-2 self-start sm:self-center">
+                    <button id="prev-page-btn" onclick="navigatePage(-1)" class="px-4 py-2.5 rounded-xl bg-obsidian hover:bg-slate-800 text-slate-200 border border-slate-700 font-mono text-xs font-semibold flex items-center gap-1.5 transition-all">
+                        <span>&larr; PREV</span>
+                    </button>
+                    <div class="px-3.5 py-2.5 rounded-xl bg-obsidian border border-slate-800 font-mono text-xs font-bold text-amatCyanGlow">
+                        PAGE <span id="current-page-num">1</span> / <span id="total-pages-num">2</span>
+                    </div>
+                    <button id="next-page-btn" onclick="navigatePage(1)" class="px-4 py-2.5 rounded-xl bg-obsidian hover:bg-slate-800 text-slate-200 border border-slate-700 font-mono text-xs font-semibold flex items-center gap-1.5 transition-all">
+                        <span>NEXT &rarr;</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Steps List Container -->
+            <div id="steps-container" class="space-y-4">
+                <!-- Dynamically rendered step cards -->
+            </div>
+
+            <!-- Bottom Page Action Bar -->
+            <div class="rounded-2xl bg-card border border-slate-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-xs font-mono text-slate-400">
+                    TIP: Say <span class="text-slate-200">"Sign off step [N]"</span> in any order, or <span class="text-verifiedEmerald">"Sign off page"</span> to complete all technician steps on this page.
+                </div>
+                <button id="sign-off-page-btn" onclick="signOffCurrentPage()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-verifiedEmerald/20 hover:bg-verifiedEmerald/30 text-verifiedEmerald border border-verifiedEmerald/50 font-mono text-xs font-bold transition-all active:scale-95">
+                    ✓ SIGN OFF ENTIRE PAGE
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN (4 COLS): LIVE AUDIT & VOICE COMMAND LOG SIDEBAR -->
+        <aside class="lg:col-span-4 flex flex-col rounded-2xl bg-card border border-slate-800 overflow-hidden h-[560px] lg:h-[calc(100vh-225px)] lg:sticky lg:top-[92px]">
+            <div class="px-5 py-4 bg-obsidian/80 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-verifiedEmerald animate-pulse"></span>
+                    <h2 class="font-bold text-sm uppercase tracking-wider text-white">Live MES Audit & Voice Log</h2>
+                </div>
+                <button onclick="clearAuditLog()" class="font-mono text-[11px] text-slate-400 hover:text-white transition-colors">
+                    CLEAR
+                </button>
+            </div>
+
+            <!-- Scrollable Log Feed -->
+            <div id="audit-log-feed" class="flex-1 overflow-y-auto p-4 space-y-2.5 font-mono text-xs">
+                <!-- Log entries injected here -->
+            </div>
+
+            <!-- Compliance Footer -->
+            <div class="px-4 py-3 bg-obsidian border-t border-slate-800 font-mono text-[11px] text-slate-400 flex items-center justify-between">
+                <span>21 CFR PART 11 TRACE</span>
+                <span class="text-amatCyanGlow">ENCRYPTED STREAM</span>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- =====================================================================
+         5. QUALITY ALERT MANUAL ACKNOWLEDGEMENT MODAL
+    ====================================================================== -->
+    <div id="quality-ack-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="w-full max-w-lg rounded-2xl bg-card border-2 border-alertCrimson p-6 sm:p-7 shadow-2xl">
+            <div class="flex items-center gap-3 text-alertCrimson">
+                <div class="p-2.5 rounded-xl bg-alertCrimson/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="font-mono text-xs uppercase font-bold tracking-wider">QUALITY CONTAINMENT PROTOCOL</div>
+                    <h3 class="text-xl font-bold text-white">Acknowledge Open Quality Alert</h3>
+                </div>
+            </div>
+
+            <div class="mt-4 p-4 rounded-xl bg-obsidian border border-alertCrimson/40 text-sm text-slate-200 leading-relaxed" id="modal-alert-description">
+                QA-904: Particle count excursion detected.
+            </div>
+
+            <p class="text-xs text-slate-400 mt-3 font-mono">
+                NOTE: Voice commands cannot bypass quality holds. Standard on-screen verification is mandatory.
+            </p>
+
+            <form onsubmit="submitQualityAcknowledgement(event)" class="mt-5 space-y-4">
+                <div>
+                    <label class="block font-mono text-xs text-slate-300 uppercase mb-1.5">Corrective Action Taken *</label>
+                    <select id="qa-action-select" required class="w-full px-3.5 py-2.5 rounded-xl bg-obsidian border border-slate-700 text-white text-sm focus:outline-none focus:border-amatCyanGlow">
+                        <option value="Verified HEPA purge cycle & re-seated Viton O-ring">Verified HEPA purge cycle & re-seated Viton O-ring</option>
+                        <option value="Performed IPA cleanroom wipe-down & laser particle re-test">Performed IPA cleanroom wipe-down & laser particle re-test</option>
+                        <option value="Logged non-conformance ticket & isolated sub-assembly">Logged non-conformance ticket & isolated sub-assembly</option>
+                    </select>
+                </div>
+
+                <label class="flex items-start gap-3 p-3 rounded-xl bg-obsidian border border-slate-800 cursor-pointer">
+                    <input type="checkbox" id="qa-verify-checkbox" required class="mt-0.5 w-4 h-4 accent-amatCyan rounded">
+                    <span class="text-xs text-slate-300 leading-relaxed">
+                        I certify under my Technician Badge (<strong class="text-white">#4092</strong>) that physical containment and inspection checks are complete.
+                    </span>
+                </label>
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeQualityAckModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-alertCrimson hover:bg-red-500 text-white font-bold text-sm shadow-lg shadow-alertCrimson/30 transition-all">
+                        Clear Quality Hold
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         JAVASCRIPT: MES DATA MODEL, VOICE STT/TTS ENGINE & SAFETY GUARDRAILS
+    ====================================================================== -->
+    <script>
+        /* ---------------------------------------------------------------------
+           1. MES WORK INSTRUCTION DATA MODEL (3 OPERATIONS, MULTI-PAGE)
+        ---------------------------------------------------------------------- */
+        const mesOperations = {
+            op10: {
+                code: 'OP 10',
+                title: 'Chamber Assembly & Pedestal Alignment',
+                arrivedPromptShown: true,
+                currentPage: 0,
+                pages: [
+                    {
+                        pageTitle: 'Page 1: Pedestal Mounting & Cleanroom Prep',
+                        steps: [
+                            {
+                                number: 1,
+                                title: 'Verify ISO Class 1 Gowning & Chamber Purge',
+                                detail: 'Confirm nitrogen purge flow at 12.5 SLM and verify zero particulates on chamber viewport.',
+                                spec: 'SPEC: N₂ 12.5 ± 0.5 SLM',
+                                requiresInspector: false,
+                                completed: false
+                            },
+                            {
+                                number: 2,
+                                title: 'Torque Ceramic Heater Pedestal Bolts',
+                                detail: 'Install 6x M8 molybdenum bolts in star pattern using calibrated digital torque wrench.',
+                                spec: 'TORQUE: 18.5 Nm ± 0.2',
+                                requiresInspector: false,
+                                completed: false
+                            },
+                            {
+                                number: 3,
+                                title: 'Laser Interferometer Pedestal Leveling Check',
+                                detail: 'Measure wafer plane parallelism across 4 quadrants. Requires Quality Inspector witness sign-off.',
+                                spec: 'TOLERANCE: ≤ 15 µm TIR',
+                                requiresInspector: true,
+                                completed: false
+                            }
+                        ]
+                    },
+                    {
+                        pageTitle: 'Page 2: Gas Distribution Showerhead Installation',
+                        steps: [
+                            {
+                                number: 4,
+                                title: 'Inspect Dual-Zone Showerhead Faceplate',
+                                detail: 'Check 1,200 micro-orifices under UV inspection lamp for machining burrs or residue.',
+                                spec: 'SPEC: ZERO FOD / BURRS',
+                                requiresInspector: false,
+                                completed: false
+                            },
+                            {
+                                number: 5,
+                                title: 'Seat Kalrez® High-Temp O-Ring & Clamp Lid',
+                                detail: 'Apply dry installation (no vacuum grease) into dovetail groove and engage pneumatic lid latches.',
+                                spec: 'SEAL: KALREZ 9100',
+                                requiresInspector: false,
+                                completed: false
+                            },
+                            {
+                                number: 6,
+                                title: 'Final Lid Closure & Safety Interlock Audit',
+                                detail: 'Verify magnetic reed interlocks A & B trip properly. Quality Inspector sign-off mandatory.',
+                                spec: 'INTERLOCK: DUAL-CHANNEL',
+                                requiresInspector: true,
+                                completed: false
+                            }
+                        ]
+                    }
+                ]
+            },
+            op20: {
+                code: 'OP 20',
+                title: 'Vacuum Seal & Helium Leak Check',
+                arrivedPromptShown: false,
+                currentPage: 0,
+                pages: [
+                    {
+                        pageTitle: 'Page 1: Roughing Pump & Base Pressure Drawdown',
+                        steps: [
+                            {
+                                number: 1,
+                                title: 'Connect Dry Scroll Roughing Line & Open Foreline Valve',
+                                detail: 'Verify KF-40 centering ring alignment and engage isolation valve V-102.',
+                                spec: 'VALVE: V-102 OPEN',
+                                requiresInspector: false,
+                                completed: false
+                            },
+                            {
+                                number: 2,
+                                title: 'Pump Down Chamber to Crossover Threshold',
+                                detail: 'Monitor Pirani gauge until chamber pressure stabilizes below 50 mTorr before turbo start.',
+                                spec: 'CROSSOVER: < 50 mTorr',
+                                requiresInspector: false,
+                                completed: false
+                            }
+                        ]
+                    },
+                    {
+                        pageTitle: 'Page 2: Mass Spectrometer Helium Leak Verification',
+                        steps: [
+                            {
+                                number: 3,
+                                title: 'Helium Spray Test on Chamber Lid & Viewports',
+                                detail: 'Scan all elastomer seals with fine helium probe at 2 cm/sec sweep rate.',
+                                spec: 'LEAK RATE: < 1.0×10⁻⁹ std cc/s',
+                                requiresInspector: true,
+                                completed: false
+                            },
+                            {
+                                number: 4,
+                                title: 'Record Rate-of-Rise (RoR) Isolation Curve',
+                                detail: 'Isolate chamber for 180 seconds and confirm pressure rise remains within baseline.',
+                                spec: 'ROR LIMIT: ≤ 1.2 mTorr/min',
+                                requiresInspector: false,
+                                completed: false
+                            }
+                        ]
+                    }
+                ]
+            },
+            op30: {
+                code: 'OP 30',
+                title: 'RF Generator Calibration & Matching Network',
+                arrivedPromptShown: false,
+                currentPage: 0,
+                pages: [
+                    {
+                        pageTitle: 'Page 1: 13.56 MHz RF Delivery & Ground Straps',
+                        steps: [
+                            {
+                                number: 1,
+                                title: 'Install Silver-Plated RF Return Ground Straps',
+                                detail: 'Secure 8x braided copper-silver straps between chamber body and auto-match chassis.',
+                                spec: 'IMPEDANCE: < 0.05 Ω',
+                                requiresInspector: false,
+                                completed: false
+                            },
+                            {
+                                number: 2,
+                                title: 'Verify High-Voltage Interlock & Reflected Power Trip',
+                                detail: 'Test forward/reflected power cutoff at 50W dummy load with Quality Inspector.',
+                                spec: 'TRIP LIMIT: > 15W REFL',
+                                requiresInspector: true,
+                                completed: false
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        /* ---------------------------------------------------------------------
+           2. APPLICATION STATE
+        ---------------------------------------------------------------------- */
+        let currentOpKey = 'op10';
+        let laborRunning = false;
+        let laborSeconds = 0;
+        let laborInterval = null;
+        let activeQualityAlert = null; // null or alert description string
+        let isListening = false;
+        let ttsMuted = false;
+        let recognition = null;
+
+        /* ---------------------------------------------------------------------
+           3. TEXT-TO-SPEECH (TTS) & AUDIT LOGGING ENGINE
+        ---------------------------------------------------------------------- */
+        function speakAndConfirm(message, tone = 'info') {
+            const banner = document.getElementById('tts-banner');
+            const textEl = document.getElementById('tts-confirmation-text');
+            textEl.textContent = message;
+
+            // Update banner styling based on feedback type
+            banner.className = 'px-4 py-2.5 rounded-xl border flex items-center gap-3 transition-colors ';
+            if (tone === 'error' || tone === 'blocked') {
+                banner.className += 'bg-alertCrimson/15 border-alertCrimson/60 text-red-200';
+            } else if (tone === 'amber') {
+                banner.className += 'bg-inspectorAmber/15 border-inspectorAmber/60 text-amber-200';
+            } else if (tone === 'success') {
+                banner.className += 'bg-verifiedEmerald/15 border-verifiedEmerald/60 text-emerald-200';
+            } else {
+                banner.className += 'bg-amatCyan/10 border-amatCyan/40 text-white';
+            }
+
+            addAuditLog('TTS', message, tone);
+
+            // Browser SpeechSynthesis output
+            if (!ttsMuted && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(message);
+                utterance.rate = 1.05;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function toggleTtsMute() {
+            ttsMuted = !ttsMuted;
+            document.getElementById('tts-icon-on').classList.toggle('hidden', ttsMuted);
+            document.getElementById('tts-icon-off').classList.toggle('hidden', !ttsMuted);
+            if (ttsMuted && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            addAuditLog('SYS', ttsMuted ? 'Spoken audio muted (visual confirmations remain active).' : 'Spoken audio unmuted.', 'info');
+        }
+
+        function addAuditLog(tag, message, tone = 'info') {
+            const feed = document.getElementById('audit-log-feed');
+            const now = new Date();
+            const timestamp = now.toTimeString().split(' ')[0];
+
+            let badgeClass = 'bg-slate-800 text-slate-300';
+            let textClass = 'text-slate-300';
+
+            if (tag === 'VOICE') {
+                badgeClass = 'bg-amatCyan/20 text-amatCyanGlow border border-amatCyan/30';
+                textClass = 'text-white font-semibold';
+            } else if (tone === 'success') {
+                badgeClass = 'bg-verifiedEmerald/20 text-verifiedEmerald border border-verifiedEmerald/30';
+                textClass = 'text-emerald-200';
+            } else if (tone === 'amber') {
+                badgeClass = 'bg-inspectorAmber/20 text-inspectorAmber border border-inspectorAmber/30';
+                textClass = 'text-amber-200';
+            } else if (tone === 'error' || tone === 'blocked') {
+                badgeClass = 'bg-alertCrimson/20 text-alertCrimson border border-alertCrimson/30';
+                textClass = 'text-red-200';
+            }
+
+            const entry = document.createElement('div');
+            entry.className = 'p-2.5 rounded-xl bg-obsidian/90 border border-slate-800/90 space-y-1';
+            entry.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${badgeClass}">${tag}</span>
+                    <span class="text-[10px] text-slate-500">${timestamp}</span>
+                </div>
+                <div class="${textClass} leading-relaxed break-words">${escapeHtml(message)}</div>
+            `;
+            feed.prepend(entry);
+        }
+
+        function clearAuditLog() {
+            document.getElementById('audit-log-feed').innerHTML = '';
+            addAuditLog('SYS', 'Audit log cleared by technician.', 'info');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        /* ---------------------------------------------------------------------
+           4. WEB SPEECH API (PUSH-TO-TALK VOICE LISTENING)
+        ---------------------------------------------------------------------- */
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                document.getElementById('speech-status-badge').textContent = 'SIM MODE';
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onstart = () => {
+                isListening = true;
+                updateMicUiState(true);
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        const cleanCmd = transcript.trim();
+                        document.getElementById('live-transcript').textContent = `"${cleanCmd}"`;
+                        processVoiceCommand(cleanCmd);
+                    } else {
+                        interimTranscript += transcript;
+                        document.getElementById('live-transcript').textContent = `Listening: "${interimTranscript}..."`;
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                addAuditLog('SYS', `Microphone notice: ${event.error}. Quick-command simulation pills remain ready.`, 'amber');
+                stopVoiceListening();
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    // Restart automatically while toggle is active
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        stopVoiceListening();
+                    }
+                }
+            };
+        }
+
+        function toggleVoiceListening() {
+            if (isListening) {
+                stopVoiceListening();
+            } else {
+                startVoiceListening();
+            }
+        }
+
+        function startVoiceListening() {
+            if (!recognition) {
+                isListening = true;
+                updateMicUiState(true);
+                document.getElementById('live-transcript').textContent = '[Simulated Mic Active — Click any voice pill below or speak if supported]';
+                addAuditLog('SYS', 'Voice listening started (Simulation Mode active).', 'info');
+                return;
+            }
+            try {
+                recognition.start();
+                addAuditLog('SYS', 'Microphone listening activated by technician.', 'info');
+            } catch (e) {
+                isListening = true;
+                updateMicUiState(true);
+            }
+        }
+
+        function stopVoiceListening() {
+            isListening = false;
+            updateMicUiState(false);
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+            }
+            document.getElementById('live-transcript').textContent = '[Listening stopped by technician]';
+            addAuditLog('SYS', 'Voice listening stopped.', 'info');
+        }
+
+        function updateMicUiState(active) {
+            const btn = document.getElementById('mic-toggle-btn');
+            const label = document.getElementById('mic-btn-label');
+            const badge = document.getElementById('speech-status-badge');
+
+            if (active) {
+                btn.classList.remove('bg-amatCyan', 'hover:bg-amatCyanGlow');
+                btn.classList.add('bg-rose-600', 'hover:bg-rose-500', 'mic-pulse');
+                label.textContent = 'Stop Voice Listening';
+                badge.textContent = 'LISTENING';
+                badge.className = 'font-mono text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 flex-shrink-0 animate-pulse';
+            } else {
+                btn.classList.add('bg-amatCyan', 'hover:bg-amatCyanGlow');
+                btn.classList.remove('bg-rose-600', 'hover:bg-rose-500', 'mic-pulse');
+                label.textContent = 'Start Voice Listening';
+                badge.textContent = 'STANDBY';
+                badge.className = 'font-mono text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 flex-shrink-0';
+            }
+        }
+
+        // Spacebar shortcut for push-to-toggle listening (when not typing in a form field)
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                toggleVoiceListening();
+            }
+        });
+
+        /* ---------------------------------------------------------------------
+           5. FUZZY INTENT PARSER & STRICT SAFETY GUARDRAILS
+        ---------------------------------------------------------------------- */
+        function simulateVoiceCommand(rawText) {
+            document.getElementById('live-transcript').textContent = `"${rawText}"`;
+            processVoiceCommand(rawText);
+        }
+
+        function normalizeNumberWord(token) {
+            const map = {
+                'one': 1, '1': 1, 'first': 1,
+                'two': 2, '2': 2, 'second': 2, 'to': 2, 'too': 2,
+                'three': 3, '3': 3, 'third': 3,
+                'four': 4, '4': 4, 'fourth': 4, 'for': 4,
+                'five': 5, '5': 5, 'fifth': 5,
+                'six': 6, '6': 6, 'sixth': 6
+            };
+            return map[token] || parseInt(token, 10) || null;
+        }
+
+        function processVoiceCommand(rawInput) {
+            const cmd = rawInput.toLowerCase().replace(/[.,!?]/g, '').trim();
+            addAuditLog('VOICE', `"${rawInput}"`);
+
+            // 1. Labor Clock Commands (Allowed even during quality hold so technician can pause labor)
+            if (/\b(start|begin|resume)\s+(labor|clock|timer|work)\b/.test(cmd)) {
+                hideNewOpPrompt();
+                if (!laborRunning) {
+                    startLaborClock();
+                    speakAndConfirm('Labor clock started.', 'success');
+                } else {
+                    speakAndConfirm('Labor clock is already running.', 'info');
+                }
+                return;
+            }
+
+            if (/\b(stop|pause|end|halt)\s+(labor|clock|timer|work)\b/.test(cmd)) {
+                if (laborRunning) {
+                    stopLaborClock();
+                    speakAndConfirm('Labor clock stopped.', 'info');
+                } else {
+                    speakAndConfirm('Labor clock is already stopped.', 'info');
+                }
+                return;
+            }
+
+            // 2. Open / View Instructions (Dismisses new operation arrival prompt)
+            if (/\b(open|view|show|read)\s+(instructions|work instructions|steps)\b/.test(cmd)) {
+                hideNewOpPrompt();
+                const op = mesOperations[currentOpKey];
+                speakAndConfirm(`Opened instructions for ${op.code}, page ${op.currentPage + 1}.`, 'info');
+                return;
+            }
+
+            // =================================================================
+            // CRITICAL SAFETY GUARDRAIL: OPEN QUALITY ALERT BLOCKS ALL
+            // NAVIGATION & SIGN-OFFS UNTIL ACKNOWLEDGED ON SCREEN
+            // =================================================================
+            const isNavOrSignOff = /\b(next|previous|prior|back|sign off|sign-off|complete|check off)\b/.test(cmd);
+            if (activeQualityAlert && isNavOrSignOff) {
+                speakAndConfirm(
+                    `Blocked. Open quality alert active: ${activeQualityAlert}. Acknowledge the alert on screen before continuing.`,
+                    'blocked'
+                );
+                return;
+            }
+
+            // 3. Page Navigation Commands (Supports "previous page", "prior page", "go back", "next page")
+            if (/\b(next\s+page|page\s+next|forward|advance\s+page)\b/.test(cmd)) {
+                hideNewOpPrompt();
+                navigatePage(1, true);
+                return;
+            }
+
+            if (/\b(previous\s+page|prior\s+page|last\s+page|go\s+back|back\s+page|prev\s+page)\b/.test(cmd)) {
+                hideNewOpPrompt();
+                navigatePage(-1, true);
+                return;
+            }
+
+            // 4. Sign Off Whole Page
+            if (/\b(sign\s*-?\s*off\s+(the\s+)?(whole\s+|entire\s+)?page|complete\s+page)\b/.test(cmd)) {
+                hideNewOpPrompt();
+                signOffCurrentPage(true);
+                return;
+            }
+
+            // 5. Sign Off Specific Step by Number (In any order)
+            const stepMatch = cmd.match(/\b(?:sign\s*-?\s*off|complete|verify|check\s*off)\s+(?:step\s+)?([a-z0-9]+)\b/);
+            if (stepMatch) {
+                const stepNum = normalizeNumberWord(stepMatch[1]);
+                if (stepNum) {
+                    hideNewOpPrompt();
+                    signOffStepByNumber(stepNum, true);
+                    return;
+                }
+            }
+
+            // 6. Unrecognized Command -> Clear "Try Again" spoken feedback
+            speakAndConfirm('Command not recognized, please try again.', 'error');
+        }
+
+        /* ---------------------------------------------------------------------
+           6. OPERATION SWITCHING, NAVIGATION & SIGN-OFF HANDLERS
+        ---------------------------------------------------------------------- */
+        function switchOperation(opKey) {
+            currentOpKey = opKey;
+            const op = mesOperations[opKey];
+            renderWorkspace();
+
+            // Check if operation has incomplete steps and prompt technician
+            const allSteps = op.pages.flatMap(p => p.steps);
+            const hasIncomplete = allSteps.some(s => !s.completed);
+
+            if (hasIncomplete) {
+                const promptEl = document.getElementById('new-op-prompt');
+                document.getElementById('new-op-title').textContent = `Arrived at ${op.code}: ${op.title}`;
+                promptEl.classList.remove('hidden');
+                speakAndConfirm(
+                    `Arrived at ${op.code}, ${op.title}. Say start labor or view instructions.`,
+                    'info'
+                );
+            } else {
+                hideNewOpPrompt();
+                speakAndConfirm(`Switched to ${op.code}, ${op.title}. All steps complete.`, 'success');
+            }
+        }
+
+        function hideNewOpPrompt() {
+            document.getElementById('new-op-prompt').classList.add('hidden');
+        }
+
+        function navigatePage(delta, viaVoice = false) {
+            if (activeQualityAlert) {
+                speakAndConfirm('Navigation blocked. Open quality alert must be acknowledged on screen first.', 'blocked');
+                return;
+            }
+
+            const op = mesOperations[currentOpKey];
+            const targetIndex = op.currentPage + delta;
+
+            if (targetIndex < 0) {
+                speakAndConfirm('There is no previous page. You are on page 1.', 'amber');
+                return;
+            }
+
+            if (targetIndex >= op.pages.length) {
+                speakAndConfirm(`There is no next page. You are on the final page of ${op.code}.`, 'amber');
+                return;
+            }
+
+            op.currentPage = targetIndex;
+            renderWorkspace();
+            const pageObj = op.pages[op.currentPage];
+            speakAndConfirm(`Moved to page ${op.currentPage + 1} of ${op.pages.length}. ${pageObj.pageTitle}.`, 'info');
+        }
+
+        function signOffStepByNumber(stepNumber, viaVoice = false) {
+            if (activeQualityAlert) {
+                speakAndConfirm('Sign-off blocked. Acknowledge the open quality alert on screen first.', 'blocked');
+                return;
+            }
+
+            const op = mesOperations[currentOpKey];
+            // Search across current operation steps (so technician can sign off in any order)
+            let targetStep = null;
+            let foundPageIndex = -1;
+
+            op.pages.forEach((page, pIdx) => {
+                page.steps.forEach(step => {
+                    if (step.number === stepNumber) {
+                        targetStep = step;
+                        foundPageIndex = pIdx;
+                    }
+                });
+            });
+
+            if (!targetStep) {
+                speakAndConfirm(`Step ${stepNumber} not found in ${op.code}, please try again.`, 'error');
+                return;
+            }
+
+            // RULE: Quality Inspector sign-offs stay with the inspector
+            if (targetStep.requiresInspector) {
+                speakAndConfirm(
+                    `Quality inspector sign-off required for step ${stepNumber}. Step remains pending for inspector.`,
+                    'amber'
+                );
+                return;
+            }
+
+            if (targetStep.completed) {
+                speakAndConfirm(`Step ${stepNumber} is already signed off.`, 'info');
+                return;
+            }
+
+            targetStep.completed = true;
+            if (foundPageIndex !== -1 && foundPageIndex !== op.currentPage) {
+                op.currentPage = foundPageIndex;
+            }
+            renderWorkspace();
+            speakAndConfirm(`Step ${stepNumber} signed off: ${targetStep.title}.`, 'success');
+        }
+
+        function toggleStepManual(stepNumber) {
+            if (activeQualityAlert) {
+                speakAndConfirm('Sign-off blocked. Acknowledge the open quality alert on screen first.', 'blocked');
+                return;
+            }
+
+            const op = mesOperations[currentOpKey];
+            const currentPage = op.pages[op.currentPage];
+            const step = currentPage.steps.find(s => s.number === stepNumber);
+            if (!step) return;
+
+            if (step.requiresInspector) {
+                speakAndConfirm(
+                    `Quality inspector sign-off required for step ${stepNumber}. Technician cannot sign off this item.`,
+                    'amber'
+                );
+                return;
+            }
+
+            step.completed = !step.completed;
+            renderWorkspace();
+            speakAndConfirm(
+                step.completed ? `Step ${stepNumber} signed off.` : `Step ${stepNumber} sign-off removed.`,
+                step.completed ? 'success' : 'info'
+            );
+        }
+
+        function signOffCurrentPage(viaVoice = false) {
+            if (activeQualityAlert) {
+                speakAndConfirm('Page sign-off blocked. Acknowledge the open quality alert on screen first.', 'blocked');
+                return;
+            }
+
+            const op = mesOperations[currentOpKey];
+            const page = op.pages[op.currentPage];
+
+            let signedCount = 0;
+            let inspectorPendingSteps = [];
+
+            page.steps.forEach(step => {
+                if (step.requiresInspector && !step.completed) {
+                    inspectorPendingSteps.push(step.number);
+                } else if (!step.completed) {
+                    step.completed = true;
+                    signedCount++;
+                }
+            });
+
+            // Advance to next page if available
+            const hasNextPage = op.currentPage + 1 < op.pages.length;
+            if (hasNextPage) {
+                op.currentPage += 1;
+            }
+
+            renderWorkspace();
+
+            let msg = signedCount > 0
+                ? `Signed off ${signedCount} technician step${signedCount > 1 ? 's' : ''}.`
+                : 'All technician steps on previous page were already complete.';
+
+            if (inspectorPendingSteps.length > 0) {
+                msg += ` Note: Step ${inspectorPendingSteps.join(', ')} remains pending for quality inspector.`;
+            }
+
+            if (hasNextPage) {
+                msg += ` Moving to page ${op.currentPage + 1}.`;
+            } else {
+                msg += ` Reached final page of ${op.code}.`;
+            }
+
+            speakAndConfirm(msg, inspectorPendingSteps.length > 0 ? 'amber' : 'success');
+        }
+
+        /* ---------------------------------------------------------------------
+           7. LABOR CLOCK TIMER
+        ---------------------------------------------------------------------- */
+        function toggleLaborClock() {
+            if (laborRunning) {
+                stopLaborClock();
+                speakAndConfirm('Labor clock stopped.', 'info');
+            } else {
+                hideNewOpPrompt();
+                startLaborClock();
+                speakAndConfirm('Labor clock started.', 'success');
+            }
+        }
+
+        function startLaborClock() {
+            if (laborRunning) return;
+            laborRunning = true;
+            updateLaborClockUi();
+            laborInterval = setInterval(() => {
+                laborSeconds++;
+                document.getElementById('labor-timer-display').textContent = formatDuration(laborSeconds);
+            }, 1000);
+        }
+
+        function stopLaborClock() {
+            laborRunning = false;
+            clearInterval(laborInterval);
+            updateLaborClockUi();
+        }
+
+        function updateLaborClockUi() {
+            const box = document.getElementById('labor-clock-box');
+            const dot = document.getElementById('labor-dot');
+            const label = document.getElementById('labor-status-label');
+            const btn = document.getElementById('labor-toggle-btn');
+
+            if (laborRunning) {
+                box.classList.remove('border-slate-700/80');
+                box.classList.add('border-verifiedEmerald/60', 'bg-verifiedEmerald/10');
+                dot.className = 'w-2 h-2 rounded-full bg-verifiedEmerald animate-ping';
+                label.textContent = 'LABOR ACTIVE';
+                label.className = 'font-mono text-[10px] uppercase tracking-wider text-verifiedEmerald font-bold';
+                btn.textContent = 'STOP';
+                btn.className = 'px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-xs font-mono font-semibold text-rose-300 border border-rose-500/40 transition-all';
+            } else {
+                box.classList.add('border-slate-700/80');
+                box.classList.remove('border-verifiedEmerald/60', 'bg-verifiedEmerald/10');
+                dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+                label.textContent = 'LABOR STOPPED';
+                label.className = 'font-mono text-[10px] uppercase tracking-wider text-slate-400';
+                btn.textContent = 'START';
+                btn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono font-semibold text-amatCyanGlow border border-slate-600 transition-all';
+            }
+        }
+
+        function formatDuration(totalSecs) {
+            const hrs = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+            const secs = String(totalSecs % 60).padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+
+        /* ---------------------------------------------------------------------
+           8. QUALITY ALERT SIMULATION & MANUAL ACKNOWLEDGEMENT WORKFLOW
+        ---------------------------------------------------------------------- */
+        function triggerQualityAlert(alertDescription) {
+            activeQualityAlert = alertDescription;
+            document.getElementById('quality-alert-text').textContent = alertDescription;
+            document.getElementById('modal-alert-description').textContent = alertDescription;
+            document.getElementById('quality-alert-banner').classList.remove('hidden');
+
+            renderWorkspace();
+            speakAndConfirm(
+                `Attention! Open quality alert. ${alertDescription} Sign-offs and navigation are blocked until acknowledged on screen.`,
+                'error'
+            );
+        }
+
+        function openQualityAckModal() {
+            const modal = document.getElementById('quality-ack-modal');
+            document.getElementById('qa-verify-checkbox').checked = false;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeQualityAckModal() {
+            const modal = document.getElementById('quality-ack-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function submitQualityAcknowledgement(e) {
+            e.preventDefault();
+            const action = document.getElementById('qa-action-select').value;
+            activeQualityAlert = null;
+            document.getElementById('quality-alert-banner').classList.add('hidden');
+            closeQualityAckModal();
+            renderWorkspace();
+            speakAndConfirm(`Quality alert acknowledged and cleared. Action logged: ${action}.`, 'success');
+        }
+
+        /* ---------------------------------------------------------------------
+           9. RENDER WORKSPACE STEP CARDS
+        ---------------------------------------------------------------------- */
+        function renderWorkspace() {
+            const op = mesOperations[currentOpKey];
+            const page = op.pages[op.currentPage];
+
+            // Calculate overall progress
+            const allSteps = op.pages.flatMap(p => p.steps);
+            const completedCount = allSteps.filter(s => s.completed).length;
+
+            document.getElementById('op-code-badge').textContent = op.code;
+            document.getElementById('op-progress-badge').textContent = `${completedCount} / ${allSteps.length} STEPS COMPLETE`;
+            document.getElementById('op-heading').textContent = `${op.title} — ${page.pageTitle}`;
+            document.getElementById('current-page-num').textContent = op.currentPage + 1;
+            document.getElementById('total-pages-num').textContent = op.pages.length;
+
+            // Update Prev/Next button visual disabled hints
+            const prevBtn = document.getElementById('prev-page-btn');
+            const nextBtn = document.getElementById('next-page-btn');
+            prevBtn.classList.toggle('opacity-40', op.currentPage === 0 || !!activeQualityAlert);
+            nextBtn.classList.toggle('opacity-40', op.currentPage === op.pages.length - 1 || !!activeQualityAlert);
+
+            const container = document.getElementById('steps-container');
+            container.innerHTML = '';
+
+            page.steps.forEach(step => {
+                const isBlocked = !!activeQualityAlert;
+                let cardBorder = 'border-slate-800 hover:border-slate-700';
+                let statusBadge = '';
+                let checkboxHtml = '';
+
+                if (step.completed) {
+                    cardBorder = 'border-verifiedEmerald/60 bg-verifiedEmerald/5';
+                    statusBadge = `<span class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-verifiedEmerald/20 text-verifiedEmerald border border-verifiedEmerald/40 font-bold">✓ SIGNED OFF</span>`;
+                    checkboxHtml = `
+                        <button onclick="toggleStepManual(${step.number})" ${isBlocked ? 'disabled' : ''} class="w-11 h-11 rounded-xl bg-verifiedEmerald text-obsidian flex items-center justify-center font-bold shadow-lg shadow-verifiedEmerald/20 transition-transform active:scale-95">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </button>
+                    `;
+                } else if (step.requiresInspector) {
+                    cardBorder = 'border-inspectorAmber/60 bg-inspectorAmber/5';
+                    statusBadge = `<span class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-inspectorAmber/20 text-inspectorAmber border border-inspectorAmber/40 font-bold">🔒 QUALITY INSPECTOR REQUIRED</span>`;
+                    checkboxHtml = `
+                        <button onclick="toggleStepManual(${step.number})" title="Quality Inspector Sign-Off Required" class="w-11 h-11 rounded-xl bg-inspectorAmber/15 border-2 border-inspectorAmber/60 text-inspectorAmber flex items-center justify-center cursor-not-allowed">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </button>
+                    `;
+                } else {
+                    statusBadge = `<span class="font-mono text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">TECHNICIAN STEP</span>`;
+                    checkboxHtml = `
+                        <button onclick="toggleStepManual(${step.number})" ${isBlocked ? 'disabled' : ''} class="w-11 h-11 rounded-xl bg-obsidian hover:bg-slate-800 border-2 border-slate-600 hover:border-amatCyanGlow text-slate-400 flex items-center justify-center transition-all active:scale-95 ${isBlocked ? 'opacity-40 cursor-not-allowed' : ''}">
+                            <span class="font-mono text-xs font-bold">SIGN</span>
+                        </button>
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.className = `rounded-2xl bg-card border ${cardBorder} p-5 transition-all flex items-start justify-between gap-4`;
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="w-11 h-11 rounded-xl bg-obsidian border border-slate-700 flex items-center justify-center font-mono text-lg font-bold text-amatCyanGlow flex-shrink-0">
+                            ${String(step.number).padStart(2, '0')}
+                        </div>
+                        <div class="space-y-1.5">
+                            <div class="flex flex-wrap items-center gap-2">
+                                ${statusBadge}
+                                <span class="font-mono text-xs px-2.5 py-0.5 rounded bg-obsidian text-amatCyanGlow border border-slate-800">${step.spec}</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-bold text-white leading-snug">${step.title}</h3>
+                            <p class="text-sm text-slate-300 leading-relaxed">${step.detail}</p>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 pt-1">
+                        ${checkboxHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        /* ---------------------------------------------------------------------
+           10. INITIALIZATION ON WINDOW LOAD
+        ---------------------------------------------------------------------- */
+        window.onload = function () {
+            initSpeechRecognition();
+            renderWorkspace();
+            addAuditLog('SYS', 'MES Workstation WO-8842-CVD initialized. Voice guardrails active.', 'info');
+        };
+    </script>
+</body>
+</html>
