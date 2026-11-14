@@ -129,9 +129,22 @@ class CommandEngine {
   }
 
   /* ----------------------------------------------------
-     TIMER COMMANDS
+     TIMER COMMANDS & CONTINUOUS ALARM LOOP
      ---------------------------------------------------- */
   handleTimerCommand(lower, original) {
+    // "acknowledge alarm" / "stop alarm" / "silence alarm" / "dismiss alarm" / "turn off alarm"
+    if (/(acknowledge|stop\s+alarm|silence|turn\s+off\s+alarm|dismiss\s+alarm|cancel\s+alarm|quiet|hush)/i.test(lower)) {
+      const acked = this.acknowledgeAlarm();
+      if (acked) {
+        return {
+          handled: true,
+          responseText: `Alarm acknowledged and silenced, sir. Standing by.`,
+          actionTag: '🔔 Alarm Acknowledged',
+          actionType: 'timer'
+        };
+      }
+    }
+
     // "cancel timer" / "stop timer"
     if (/(cancel|stop|clear|delete)\s+(all\s+)?timer/i.test(lower)) {
       const count = this.timers.length;
@@ -197,8 +210,12 @@ class CommandEngine {
         clearInterval(timerObj.timerInterval);
         timerObj.status = 'finished';
         timerObj.remaining = 0;
-        window.speechEngine.playChime('alarm');
-        window.speechEngine.speak(`Sir, your countdown for ${label} has completed.`);
+        
+        // Loop alarm continuously until acknowledged
+        if (window.speechEngine && window.speechEngine.startAlarm) {
+          window.speechEngine.startAlarm();
+        }
+        window.speechEngine.speak(`Sir, your countdown for ${label} has completed. Acknowledgment required.`);
         if (window.renderTimersList) window.renderTimersList();
       } else {
         if (window.updateTimerDisplay) window.updateTimerDisplay(timerObj.id, timerObj.remaining, timerObj.totalSeconds);
@@ -210,9 +227,28 @@ class CommandEngine {
     return timerObj;
   }
 
+  /**
+   * Acknowledges all ringing/finished timers and silences the continuous alarm loop
+   */
+  acknowledgeAlarm() {
+    const finishedTimers = this.timers.filter(t => t.status === 'finished');
+    if (finishedTimers.length > 0) {
+      this.timers = this.timers.filter(t => t.status !== 'finished');
+      if (window.speechEngine && window.speechEngine.stopAlarm) {
+        window.speechEngine.stopAlarm();
+      }
+      if (window.renderTimersList) window.renderTimersList();
+      return true;
+    }
+    return false;
+  }
+
   clearAllTimers() {
     this.timers.forEach(t => clearInterval(t.timerInterval));
     this.timers = [];
+    if (window.speechEngine && window.speechEngine.stopAlarm) {
+      window.speechEngine.stopAlarm();
+    }
     if (window.renderTimersList) window.renderTimersList();
   }
 
@@ -221,6 +257,11 @@ class CommandEngine {
     if (idx !== -1) {
       clearInterval(this.timers[idx].timerInterval);
       this.timers.splice(idx, 1);
+      // Check if any finished alarms remain
+      const hasRinging = this.timers.some(t => t.status === 'finished');
+      if (!hasRinging && window.speechEngine && window.speechEngine.stopAlarm) {
+        window.speechEngine.stopAlarm();
+      }
       if (window.renderTimersList) window.renderTimersList();
     }
   }
@@ -240,7 +281,7 @@ class CommandEngine {
   }
 
   /* ----------------------------------------------------
-     THEME COMMANDS
+     THEME COMMANDS (STARK ARC HUD, DARK, LIGHT)
      ---------------------------------------------------- */
   handleThemeCommand(lower) {
     const themePattern = /(?:change|switch|set)\s+(?:the\s+)?(?:theme|visuals|hud|interface)(?:\s+to)?\s+([a-zA-Z\s]+)|theme\s+([a-zA-Z]+)/i;
@@ -249,19 +290,17 @@ class CommandEngine {
     if (match) {
       const requested = (match[1] || match[2] || '').trim().toLowerCase();
       let targetTheme = null;
+      let displayName = '';
 
-      if (requested.includes('stark') || requested.includes('arc') || requested.includes('reactor') || requested.includes('iron man') || requested.includes('tony')) {
+      if (requested.includes('stark') || requested.includes('arc') || requested.includes('reactor') || requested.includes('iron man') || requested.includes('tony') || requested.includes('cyan') || requested.includes('blue')) {
         targetTheme = 'stark';
-      } else if (requested.includes('cyber') || requested.includes('neon')) {
-        targetTheme = 'cyberpunk';
-      } else if (requested.includes('emerald') || requested.includes('matrix') || requested.includes('green')) {
-        targetTheme = 'emerald';
-      } else if (requested.includes('sunset') || requested.includes('amber')) {
-        targetTheme = 'sunset';
-      } else if (requested.includes('light') || requested.includes('cleanroom') || requested.includes('white')) {
+        displayName = 'Stark Arc HUD';
+      } else if (requested.includes('dark') || requested.includes('night') || requested.includes('stealth') || requested.includes('black') || requested.includes('midnight')) {
+        targetTheme = 'dark';
+        displayName = 'Default Dark HUD';
+      } else if (requested.includes('light') || requested.includes('cleanroom') || requested.includes('white') || requested.includes('day')) {
         targetTheme = 'light';
-      } else if (requested.includes('midnight') || requested.includes('dark') || requested.includes('stealth')) {
-        targetTheme = 'midnight';
+        displayName = 'Default Light HUD';
       }
 
       if (targetTheme) {
@@ -272,8 +311,15 @@ class CommandEngine {
 
         return {
           handled: true,
-          responseText: `Reconfiguring visual interface to the ${targetTheme.toUpperCase()} protocol, sir.`,
-          actionTag: `⚡ Protocol: ${targetTheme.toUpperCase()}`,
+          responseText: `Reconfiguring visual interface to the ${displayName} protocol, sir.`,
+          actionTag: `⚡ Protocol: ${displayName}`,
+          actionType: 'theme'
+        };
+      } else {
+        return {
+          handled: true,
+          responseText: `Visual protocols available are: Stark Arc HUD, Default Dark HUD, and Default Light HUD, sir. Which protocol would you prefer?`,
+          actionTag: `⚡ Available HUDs`,
           actionType: 'theme'
         };
       }
@@ -550,6 +596,27 @@ class CommandEngine {
         handled: true,
         responseText: `Session transcript purged, sir. Registers cleared.`,
         actionTag: '🧹 Log Purged',
+        actionType: 'system'
+      };
+    }
+
+    // Voice Profile / Gender commands
+    if (/(switch\s+to\s+female\s+voice|change\s+voice\s+to\s+female|female\s+voice)/i.test(lower)) {
+      if (window.applyVoicePreset) window.applyVoicePreset('friday');
+      return {
+        handled: true,
+        responseText: `Acoustic profile switched to female vocal synthesis, sir.`,
+        actionTag: '👩 Voice: Female',
+        actionType: 'system'
+      };
+    }
+
+    if (/(switch\s+to\s+male\s+voice|change\s+voice\s+to\s+male|male\s+voice)/i.test(lower)) {
+      if (window.applyVoicePreset) window.applyVoicePreset('jarvis');
+      return {
+        handled: true,
+        responseText: `Acoustic profile restored to male J.A.R.V.I.S. vocal synthesis, sir.`,
+        actionTag: '👨 Voice: Male',
         actionType: 'system'
       };
     }

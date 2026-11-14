@@ -69,7 +69,7 @@ const GeminiAI = (() => {
     const modelSelect = $('geminiModelSelect');
     if (!keyInput) return;
 
-    keyInput.value = getKey();
+    keyInput.value = getKey();//Get key from geminiKey.php file
     if (modelSelect) {
       modelSelect.value = getModel();
       modelSelect.onchange = () => {

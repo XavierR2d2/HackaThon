@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="midnight">
+<html lang="en" data-theme="stark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,12 +47,9 @@
             </svg>
           </label>
           <select id="themeSelect" class="theme-dropdown" title="Select Visual Protocol">
-            <option value="midnight">Midnight Stealth</option>
-            <option value="stark">Stark Arc HUD (Applied Materials)</option>
-            <option value="cyberpunk">Cyber Neon</option>
-            <option value="emerald">Emerald Matrix</option>
-            <option value="sunset">Sunset Glow</option>
-            <option value="light">Lab Cleanroom Light</option>
+            <option value="stark" selected>⚡ Stark Arc HUD (Applied Materials)</option>
+            <option value="dark">🌙 Default Dark HUD</option>
+            <option value="light">☀️ Default Light HUD</option>
           </select>
         </div>
 
@@ -265,20 +262,59 @@
 
           <!-- Voice Synthesis Settings -->
           <div class="setting-section">
-            <h3>Vocal Synthesis (Text-to-Speech)</h3>
+            <h3>Acoustic Profile & Vocal Synthesis (Text-to-Speech)</h3>
+            <p class="section-desc">Select an Acoustic Profile persona, customize voice types (Male / Female), and choose your preferred language protocol.</p>
+            
             <div class="form-row">
-              <label for="voiceSelect">Acoustic Profile (British English Recommended for J.A.R.V.I.S.):</label>
+              <label for="voicePresetSelect">Acoustic Persona Presets:</label>
+              <select id="voicePresetSelect" class="form-select">
+                <option value="jarvis" selected>🇬🇧 J.A.R.V.I.S. (British Male - Paul Bettany Cadence)</option>
+                <option value="friday">🇮🇪 F.R.I.D.A.Y. (Irish/British Female)</option>
+                <option value="edith">🇺🇸 E.D.I.T.H. (American Female - Tactical HUD)</option>
+                <option value="core">🇺🇸 Stark Tech Core (American Male - Crisp)</option>
+                <option value="custom">⚙️ Custom Acoustic Configuration...</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label for="voiceGenderSelect">Voice Type (Gender):</label>
+              <select id="voiceGenderSelect" class="form-select">
+                <option value="all">All Voice Types</option>
+                <option value="male" selected>👨 Male Voice Profiles (J.A.R.V.I.S. / Male)</option>
+                <option value="female">👩 Female Voice Profiles (F.R.I.D.A.Y. / Female)</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label for="voiceLangSelect">Acoustic Language Protocol:</label>
+              <select id="voiceLangSelect" class="form-select">
+                <option value="en-GB" selected>English (United Kingdom) - J.A.R.V.I.S. Standard</option>
+                <option value="en-US">English (United States)</option>
+                <option value="all">All Installed Languages</option>
+                <option value="es">Spanish (Español)</option>
+                <option value="fr">French (Français)</option>
+                <option value="de">German (Deutsch)</option>
+                <option value="it">Italian (Italiano)</option>
+                <option value="ja">Japanese (日本語)</option>
+                <option value="zh">Chinese (中文)</option>
+                <option value="hi">Hindi (हिन्दी)</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label for="voiceSelect">Active Voice Engine:</label>
               <select id="voiceSelect" class="form-select">
                 <option value="">Default System Voice</option>
               </select>
             </div>
+
             <div class="form-row">
               <label for="voiceRate">Cadence Speed: <span id="rateValue">1.0x</span></label>
-              <input type="range" id="voiceRate" min="0.5" max="2.0" step="0.1" value="1.0" class="form-range">
+              <input type="range" id="voiceRate" min="0.5" max="2.0" step="0.05" value="1.0" class="form-range">
             </div>
             <div class="form-row">
               <label for="voicePitch">Vocal Pitch: <span id="pitchValue">1.0</span></label>
-              <input type="range" id="voicePitch" min="0.5" max="1.5" step="0.1" value="1.0" class="form-range">
+              <input type="range" id="voicePitch" min="0.5" max="1.5" step="0.05" value="1.0" class="form-range">
             </div>
             <button id="testVoiceBtn" class="secondary-btn">Test Vocal Module</button>
           </div>
@@ -375,16 +411,16 @@
               <ul>
                 <li>"Set a timer for 45 seconds"</li>
                 <li>"Timer for 5 minutes"</li>
+                <li>"Acknowledge" or "Stop alarm"</li>
                 <li>"Cancel all timers"</li>
               </ul>
             </div>
             <div class="help-card">
-              <h4>⚡ Interface Themes</h4>
+              <h4>⚡ Interface HUD Protocols</h4>
               <ul>
-                <li>"Change theme to Stark"</li>
-                <li>"Switch theme to Midnight"</li>
-                <li>"Set theme to Emerald"</li>
-                <li>"Theme Sunset" or "Theme Light"</li>
+                <li>"Change theme to Stark" (Stark Arc HUD)</li>
+                <li>"Switch theme to Dark" (Default Dark HUD)</li>
+                <li>"Set theme to Light" (Default Light HUD)</li>
               </ul>
             </div>
             <div class="help-card">

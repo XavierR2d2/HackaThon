@@ -77,6 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Settings form elements
   const assistantNameInput = document.getElementById('assistantNameInput');
   const saveAssistantNameBtn = document.getElementById('saveAssistantNameBtn');
+  const voicePresetSelect = document.getElementById('voicePresetSelect');
+  const voiceGenderSelect = document.getElementById('voiceGenderSelect');
+  const voiceLangSelect = document.getElementById('voiceLangSelect');
   const voiceSelect = document.getElementById('voiceSelect');
   const voiceRate = document.getElementById('voiceRate');
   const rateValue = document.getElementById('rateValue');
@@ -114,9 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentName = window.getAssistantName();
   window.setAssistantName(currentName);
 
-  const savedTheme = localStorage.getItem('voxai_theme') || 'stark';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  if (themeSelect) themeSelect.value = savedTheme;
+  // Normalize theme to one of the 3 allowed HUD protocols: stark, dark, light
+  const rawTheme = localStorage.getItem('voxai_theme') || 'stark';
+  const validThemes = ['stark', 'dark', 'light'];
+  const activeTheme = validThemes.includes(rawTheme) ? rawTheme : (rawTheme === 'midnight' ? 'dark' : 'stark');
+  document.documentElement.setAttribute('data-theme', activeTheme);
+  if (themeSelect) themeSelect.value = activeTheme;
 
   if (themeSelect) {
     themeSelect.addEventListener('change', (e) => {
@@ -764,13 +770,15 @@ document.addEventListener('DOMContentLoaded', () => {
       item.innerHTML = `
         <div class="timer-header">
           <span class="timer-label">${escapeHtml(t.label)}</span>
-          <span class="timer-digits" id="timer-digits-${t.id}">${t.status === 'finished' ? '⏰ EXPIRED' : `${mm}:${ss}`}</span>
+          <span class="timer-digits" id="timer-digits-${t.id}">${t.status === 'finished' ? '⏰ EXPIRED (ALARM)' : `${mm}:${ss}`}</span>
         </div>
         <div class="timer-progress">
           <div class="timer-bar" id="timer-bar-${t.id}" style="width: ${pct}%"></div>
         </div>
         <div class="timer-controls">
-          <button class="mini-icon-btn" onclick="window.commandEngine.removeTimer(${t.id})">Acknowledge</button>
+          <button class="mini-icon-btn ${t.status === 'finished' ? 'ringing-ack-btn' : ''}" onclick="window.commandEngine.removeTimer(${t.id})">
+            ${t.status === 'finished' ? '🔔 ACKNOWLEDGE ALARM' : 'Cancel'}
+          </button>
         </div>
       `;
       timersList.appendChild(item);
@@ -872,50 +880,270 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Populate Voices in Settings
+  // Voice Gender Classification Helper
+  function getVoiceGender(voice) {
+    if (!voice) return 'neutral';
+    const name = voice.name.toLowerCase();
+    const femaleCues = [
+      'female', 'zira', 'hazel', 'susan', 'samantha', 'victoria', 'karen', 'catherine',
+      'jenny', 'aria', 'ava', 'emma', 'sonia', 'julie', 'elena', 'anna', 'klara',
+      'chiara', 'eva', 'fiona', 'moira', 'tessa', 'heera', 'natural (female)', 'cortana'
+    ];
+    for (const cue of femaleCues) {
+      if (name.includes(cue)) return 'female';
+    }
+    const maleCues = [
+      'male', 'george', 'oliver', 'arthur', 'daniel', 'ryan', 'david', 'guy', 'mark',
+      'james', 'richard', 'thomas', 'stefan', 'paul', 'ravi', 'hemant', 'alex', 'fred',
+      'bruce', 'cosimo', 'luca', 'natural (male)', 'bettany'
+    ];
+    for (const cue of maleCues) {
+      if (name.includes(cue)) return 'male';
+    }
+    return 'neutral';
+  }
+
+  // Populate Voices in Settings with Gender & Language filters
   function populateVoiceSelect() {
     if (!voiceSelect || !speechEngine.hasSynthesis) return;
     const voices = window.speechSynthesis.getVoices();
-    voiceSelect.innerHTML = '<option value="">Default System Voice</option>';
-    voices.forEach((v, i) => {
+    if (!voices || voices.length === 0) return;
+
+    const genderFilter = voiceGenderSelect ? voiceGenderSelect.value : 'all';
+    const langFilter = voiceLangSelect ? voiceLangSelect.value : 'all';
+
+    voiceSelect.innerHTML = '';
+
+    // Filter by language & gender
+    let filtered = voices.filter(v => {
+      if (langFilter !== 'all') {
+        const vLang = v.lang.toLowerCase();
+        const fLang = langFilter.toLowerCase();
+        if (!vLang.startsWith(fLang) && !vLang.includes(fLang)) {
+          return false;
+        }
+      }
+      if (genderFilter !== 'all') {
+        const g = getVoiceGender(v);
+        if (g !== 'neutral' && g !== genderFilter) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      filtered = voices.filter(v => {
+        if (langFilter !== 'all') {
+          return v.lang.toLowerCase().startsWith(langFilter.toLowerCase());
+        }
+        return true;
+      });
+      if (filtered.length === 0) filtered = voices;
+    }
+
+    filtered.forEach(v => {
       const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = `${v.name} (${v.lang})`;
+      opt.value = v.name;
+      const g = getVoiceGender(v);
+      const icon = g === 'female' ? '👩' : (g === 'male' ? '👨' : '🗣️');
+      const gLabel = g === 'female' ? 'Female' : (g === 'male' ? 'Male' : 'Voice');
+      opt.textContent = `${icon} [${gLabel}] ${v.name} (${v.lang})`;
+
       if (speechEngine.selectedVoice && speechEngine.selectedVoice.name === v.name) {
         opt.selected = true;
       }
       voiceSelect.appendChild(opt);
+    });
+
+    if (voiceSelect.selectedIndex === -1 && voiceSelect.options.length > 0) {
+      voiceSelect.selectedIndex = 0;
+      const chosenName = voiceSelect.value;
+      speechEngine.selectedVoice = voices.find(v => v.name === chosenName) || voices[0];
+      localStorage.setItem('amat_voice_name', speechEngine.selectedVoice.name);
+    }
+  }
+
+  // Acoustic Persona Presets
+  function applyVoicePreset(preset) {
+    const voices = window.speechSynthesis.getVoices();
+    if (preset === 'jarvis') {
+      if (voiceGenderSelect) voiceGenderSelect.value = 'male';
+      if (voiceLangSelect) voiceLangSelect.value = 'en-GB';
+      speechEngine.rate = 1.0;
+      speechEngine.pitch = 0.95;
+      if (voiceRate) voiceRate.value = '1.0';
+      if (rateValue) rateValue.textContent = '1.0x';
+      if (voicePitch) voicePitch.value = '0.95';
+      if (pitchValue) pitchValue.textContent = '0.95';
+      populateVoiceSelect();
+
+      const jVoice = voices.find(v => 
+        (v.lang.startsWith('en-GB') || v.lang.startsWith('en')) &&
+        (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur') || v.name.includes('Daniel') || v.name.includes('Ryan'))
+      ) || voices.find(v => v.lang.startsWith('en-GB')) || voices[0];
+
+      if (jVoice) {
+        speechEngine.selectedVoice = jVoice;
+        if (voiceSelect) voiceSelect.value = jVoice.name;
+        localStorage.setItem('amat_voice_name', jVoice.name);
+      }
+    } else if (preset === 'friday') {
+      if (voiceGenderSelect) voiceGenderSelect.value = 'female';
+      if (voiceLangSelect) voiceLangSelect.value = 'en-GB';
+      speechEngine.rate = 1.05;
+      speechEngine.pitch = 1.1;
+      if (voiceRate) voiceRate.value = '1.05';
+      if (rateValue) rateValue.textContent = '1.05x';
+      if (voicePitch) voicePitch.value = '1.1';
+      if (pitchValue) pitchValue.textContent = '1.1';
+      populateVoiceSelect();
+
+      const fVoice = voices.find(v => 
+        (v.lang.startsWith('en-GB') || v.lang.startsWith('en-IE')) &&
+        (v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Susan') || v.name.includes('Victoria'))
+      ) || voices.find(v => getVoiceGender(v) === 'female') || voices[0];
+
+      if (fVoice) {
+        speechEngine.selectedVoice = fVoice;
+        if (voiceSelect) voiceSelect.value = fVoice.name;
+        localStorage.setItem('amat_voice_name', fVoice.name);
+      }
+    } else if (preset === 'edith') {
+      if (voiceGenderSelect) voiceGenderSelect.value = 'female';
+      if (voiceLangSelect) voiceLangSelect.value = 'en-US';
+      speechEngine.rate = 1.0;
+      speechEngine.pitch = 1.15;
+      if (voiceRate) voiceRate.value = '1.0';
+      if (rateValue) rateValue.textContent = '1.0x';
+      if (voicePitch) voicePitch.value = '1.15';
+      if (pitchValue) pitchValue.textContent = '1.15';
+      populateVoiceSelect();
+
+      const eVoice = voices.find(v => 
+        v.lang.startsWith('en-US') &&
+        (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Aria'))
+      ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
+
+      if (eVoice) {
+        speechEngine.selectedVoice = eVoice;
+        if (voiceSelect) voiceSelect.value = eVoice.name;
+        localStorage.setItem('amat_voice_name', eVoice.name);
+      }
+    } else if (preset === 'core') {
+      if (voiceGenderSelect) voiceGenderSelect.value = 'male';
+      if (voiceLangSelect) voiceLangSelect.value = 'en-US';
+      speechEngine.rate = 1.05;
+      speechEngine.pitch = 0.95;
+      if (voiceRate) voiceRate.value = '1.05';
+      if (rateValue) rateValue.textContent = '1.05x';
+      if (voicePitch) voicePitch.value = '0.95';
+      if (pitchValue) pitchValue.textContent = '0.95';
+      populateVoiceSelect();
+
+      const cVoice = voices.find(v => 
+        v.lang.startsWith('en-US') &&
+        (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Guy') || v.name.includes('Mark'))
+      ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
+
+      if (cVoice) {
+        speechEngine.selectedVoice = cVoice;
+        if (voiceSelect) voiceSelect.value = cVoice.name;
+        localStorage.setItem('amat_voice_name', cVoice.name);
+      }
+    }
+
+    localStorage.setItem('amat_voice_preset', preset);
+    localStorage.setItem('amat_voice_rate', speechEngine.rate);
+    localStorage.setItem('amat_voice_pitch', speechEngine.pitch);
+    if (voiceGenderSelect) localStorage.setItem('amat_voice_gender', voiceGenderSelect.value);
+    if (voiceLangSelect) localStorage.setItem('amat_voice_lang', voiceLangSelect.value);
+  }
+
+  window.applyVoicePreset = applyVoicePreset;
+  window.populateVoiceSelect = populateVoiceSelect;
+
+  // Restore saved voice preferences from localStorage
+  const savedPreset = localStorage.getItem('amat_voice_preset') || 'jarvis';
+  if (voicePresetSelect) voicePresetSelect.value = savedPreset;
+  const savedGender = localStorage.getItem('amat_voice_gender') || 'male';
+  if (voiceGenderSelect) voiceGenderSelect.value = savedGender;
+  const savedVoiceLang = localStorage.getItem('amat_voice_lang') || 'en-GB';
+  if (voiceLangSelect) voiceLangSelect.value = savedVoiceLang;
+  if (voiceRate) {
+    voiceRate.value = speechEngine.rate;
+    if (rateValue) rateValue.textContent = `${speechEngine.rate.toFixed(1)}x`;
+  }
+  if (voicePitch) {
+    voicePitch.value = speechEngine.pitch;
+    if (pitchValue) pitchValue.textContent = speechEngine.pitch.toFixed(2);
+  }
+
+  if (voicePresetSelect) {
+    voicePresetSelect.addEventListener('change', (e) => {
+      applyVoicePreset(e.target.value);
+    });
+  }
+
+  if (voiceGenderSelect) {
+    voiceGenderSelect.addEventListener('change', (e) => {
+      localStorage.setItem('amat_voice_gender', e.target.value);
+      if (voicePresetSelect) voicePresetSelect.value = 'custom';
+      populateVoiceSelect();
+    });
+  }
+
+  if (voiceLangSelect) {
+    voiceLangSelect.addEventListener('change', (e) => {
+      localStorage.setItem('amat_voice_lang', e.target.value);
+      if (voicePresetSelect) voicePresetSelect.value = 'custom';
+      // Sync sensor STT language if English vs International
+      if (langSelect && e.target.value !== 'all') {
+        const matchingOpt = Array.from(langSelect.options).find(opt => opt.value.startsWith(e.target.value));
+        if (matchingOpt) {
+          langSelect.value = matchingOpt.value;
+          speechEngine.language = matchingOpt.value;
+        }
+      }
+      populateVoiceSelect();
     });
   }
 
   if (voiceSelect) {
     voiceSelect.addEventListener('change', (e) => {
       const voices = window.speechSynthesis.getVoices();
-      if (e.target.value !== '') {
-        speechEngine.selectedVoice = voices[parseInt(e.target.value, 10)];
-      } else {
-        speechEngine.selectedVoice = null;
+      const match = voices.find(v => v.name === e.target.value);
+      if (match) {
+        speechEngine.selectedVoice = match;
+        localStorage.setItem('amat_voice_name', match.name);
       }
+      if (voicePresetSelect) voicePresetSelect.value = 'custom';
     });
   }
 
   if (voiceRate) {
     voiceRate.addEventListener('input', (e) => {
       speechEngine.rate = parseFloat(e.target.value);
-      if (rateValue) rateValue.textContent = `${speechEngine.rate.toFixed(1)}x`;
+      if (rateValue) rateValue.textContent = `${speechEngine.rate.toFixed(2)}x`;
+      localStorage.setItem('amat_voice_rate', speechEngine.rate);
+      if (voicePresetSelect) voicePresetSelect.value = 'custom';
     });
   }
 
   if (voicePitch) {
     voicePitch.addEventListener('input', (e) => {
       speechEngine.pitch = parseFloat(e.target.value);
-      if (pitchValue) pitchValue.textContent = speechEngine.pitch.toFixed(1);
+      if (pitchValue) pitchValue.textContent = speechEngine.pitch.toFixed(2);
+      localStorage.setItem('amat_voice_pitch', speechEngine.pitch);
+      if (voicePresetSelect) voicePresetSelect.value = 'custom';
     });
   }
 
   if (testVoiceBtn) {
     testVoiceBtn.addEventListener('click', () => {
-      speechEngine.speak(`At your service, sir. Vocal synthesis module online for ${window.getAssistantName()}.`);
+      const g = getVoiceGender(speechEngine.selectedVoice);
+      const gStr = g === 'female' ? 'Female' : (g === 'male' ? 'Male' : 'Standard');
+      speechEngine.speak(`At your service, sir. Acoustic profile initialized with ${gStr} vocal telemetry for ${window.getAssistantName()}.`);
     });
   }
 
@@ -923,6 +1151,12 @@ document.addEventListener('DOMContentLoaded', () => {
     langSelect.addEventListener('change', (e) => {
       speechEngine.language = e.target.value;
     });
+  }
+
+  if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      populateVoiceSelect();
+    };
   }
 
   if (continuousMicCheck) {

@@ -30,6 +30,7 @@ class SpeechEngine {
     this.analyser = null;
     this.micStream = null;
     this.soundEffects = true;
+    this.alarmLoopInterval = null;
 
     // Callbacks
     this.onStartCallback = null;
@@ -132,9 +133,26 @@ class SpeechEngine {
       return;
     }
 
+    // Restore saved pitch, rate, language from localStorage if present
+    const savedRate = localStorage.getItem('amat_voice_rate');
+    if (savedRate) this.rate = parseFloat(savedRate);
+    const savedPitch = localStorage.getItem('amat_voice_pitch');
+    if (savedPitch) this.pitch = parseFloat(savedPitch);
+    const savedLang = localStorage.getItem('amat_voice_lang');
+    if (savedLang && savedLang !== 'all') this.language = savedLang;
+
     const loadVoices = () => {
       this.availableVoices = window.speechSynthesis.getVoices();
-      // Prioritize British English (en-GB) voices for J.A.R.V.I.S. (Paul Bettany tone)
+      const savedVoiceName = localStorage.getItem('amat_voice_name');
+      if (savedVoiceName) {
+        const found = this.availableVoices.find(v => v.name === savedVoiceName);
+        if (found) {
+          this.selectedVoice = found;
+          return;
+        }
+      }
+
+      // Default: Prioritize British English (en-GB) voices for J.A.R.V.I.S. (Paul Bettany tone)
       this.selectedVoice = this.availableVoices.find(v => 
         (v.lang === 'en-GB' || v.lang.startsWith('en-GB')) && 
         (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur') || v.name.includes('Daniel') || v.name.includes('Ryan') || v.name.includes('Google UK English Male'))
@@ -147,6 +165,29 @@ class SpeechEngine {
     loadVoices();
     if (window.speechSynthesis.onvoiceschanged !== undefined) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }
+
+  /**
+   * Starts repeating audible alarm chime loop until acknowledged
+   */
+  startAlarm() {
+    if (this.alarmLoopInterval) return;
+    this.playChime('alarm');
+    this.alarmLoopInterval = setInterval(() => {
+      if (this.soundEffects) {
+        this.playChime('alarm');
+      }
+    }, 1500);
+  }
+
+  /**
+   * Silences ongoing alarm loop
+   */
+  stopAlarm() {
+    if (this.alarmLoopInterval) {
+      clearInterval(this.alarmLoopInterval);
+      this.alarmLoopInterval = null;
     }
   }
 
