@@ -646,6 +646,113 @@ class LaborEngine {
     this.renderLogs();
   }
 
+  // --- SHIFT STATUS & WORKFORCE DATABASE VOICE QUERIES ---
+  getWhoIsClockedInVoice() {
+    const clockedIn = this.workers.filter(w => w.status === 'clocked_in');
+    if (clockedIn.length === 0) {
+      return 'No cleanroom technicians are currently clocked in, sir.';
+    }
+
+    if (clockedIn.length === 1) {
+      const w = clockedIn[0];
+      const sec = Math.max(0, Math.floor((Date.now() - (w.lastClockIn || Date.now())) / 1000));
+      const dur = this.formatDuration(sec);
+      return `Currently 1 technician is clocked in: ${w.name} (${w.role || 'Cleanroom Specialist'}), on shift for ${dur}.`;
+    }
+
+    const summaries = clockedIn.map(w => {
+      const sec = Math.max(0, Math.floor((Date.now() - (w.lastClockIn || Date.now())) / 1000));
+      return `${w.name} (${this.formatDuration(sec)})`;
+    });
+    return `Currently ${clockedIn.length} technicians are clocked in: ${summaries.join(', ')}.`;
+  }
+
+  getWhoIsClockedOutVoice() {
+    const clockedOut = this.workers.filter(w => w.status === 'clocked_out');
+    const notClocked = this.workers.filter(w => w.status === 'not_clocked_in' || !w.status);
+
+    if (clockedOut.length === 0 && notClocked.length === 0) {
+      return 'All registered cleanroom personnel are currently clocked in, sir.';
+    }
+
+    const segments = [];
+    if (clockedOut.length > 0) {
+      const names = clockedOut.map(w => w.name).join(', ');
+      segments.push(`${clockedOut.length} clocked out: ${names}`);
+    }
+    if (notClocked.length > 0) {
+      const names = notClocked.map(w => w.name).join(', ');
+      segments.push(`${notClocked.length} not clocked in yet today: ${names}`);
+    }
+
+    return `Off-shift personnel: ${segments.join('; ')}.`;
+  }
+
+  getWorkerClockedInDurationVoice(workerQuery) {
+    const query = (workerQuery || '').trim().toLowerCase();
+    const currentUser = this.getCurrentUser();
+
+    // Check if query refers to active user or is empty
+    if (!query || query === 'i' || query === 'me' || query === 'myself') {
+      if (!currentUser) {
+        return 'No active operator profile is currently selected, sir.';
+      }
+      if (currentUser.status === 'clocked_in' && currentUser.lastClockIn) {
+        const sec = Math.max(0, Math.floor((Date.now() - currentUser.lastClockIn) / 1000));
+        const dur = this.formatDuration(sec);
+        return `You (${currentUser.name}) have been clocked in for ${dur}, sir.`;
+      }
+      if (currentUser.status === 'clocked_out') {
+        return `You (${currentUser.name}) are currently clocked out, sir.`;
+      }
+      return `You (${currentUser.name}) have not clocked in yet today, sir.`;
+    }
+
+    // Search workers by name (full or partial match)
+    const worker = this.workers.find(w => w.name.toLowerCase().includes(query));
+    if (!worker) {
+      return `I could not find technician "${workerQuery}" in the workforce database, sir.`;
+    }
+
+    if (worker.status === 'clocked_in' && worker.lastClockIn) {
+      const sec = Math.max(0, Math.floor((Date.now() - worker.lastClockIn) / 1000));
+      const dur = this.formatDuration(sec);
+      return `${worker.name} (${worker.role || 'Technician'}) has been clocked in for ${dur}.`;
+    }
+
+    if (worker.status === 'clocked_out') {
+      const outTime = worker.lastClockOut ? ` at ${new Date(worker.lastClockOut).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
+      return `${worker.name} is currently clocked out${outTime}.`;
+    }
+
+    return `${worker.name} is registered in the database but has not clocked in yet today.`;
+  }
+
+  getShiftStatusReportVoice() {
+    const summary = this.getSummary();
+    const currentUser = this.getCurrentUser();
+    const currentName = currentUser ? currentUser.name : 'Operator';
+    let userShiftInfo = '';
+
+    if (currentUser) {
+      if (currentUser.status === 'clocked_in' && currentUser.lastClockIn) {
+        const sec = Math.max(0, Math.floor((Date.now() - currentUser.lastClockIn) / 1000));
+        userShiftInfo = `Active operator ${currentName} is clocked in for ${this.formatDuration(sec)}.`;
+      } else if (currentUser.status === 'clocked_out') {
+        userShiftInfo = `Active operator ${currentName} is clocked out.`;
+      } else {
+        userShiftInfo = `Active operator ${currentName} is not clocked in yet.`;
+      }
+    }
+
+    let clockInfo = '';
+    if (this.isClockRunning()) {
+      clockInfo = ` The labor clock is running at ${this.formatDuration(this.getClockElapsedSeconds())}.`;
+    }
+
+    return `Cleanroom workforce status: ${summary.clockedIn} clocked in, ${summary.clockedOut} clocked out, and ${summary.notClockedIn} not clocked in yet out of ${summary.total} total technicians. ${userShiftInfo}${clockInfo}`;
+  }
+
   // --- NAVIGATION / VIEW SWITCHING ---
   isLaborOpen() {
     return this.isViewOpen;

@@ -207,6 +207,65 @@ class CommandEngine {
       };
     }
 
+    // 9. What jobs need to be done: "[AI NAME], what jobs need to be done?", "pending jobs", "jobs queue"
+    if (/(?:what\s+jobs\s+(?:need\s+to\s+be\s+done|need\s+doing|need\s+done|are\s+left\s+to\s+do|are\s+pending|are\s+queued|are\s+unstarted)|pending\s+jobs|jobs\s+queue|jobs\s+to\s+do|jobs\s+needing\s+(?:to\s+be\s+)?done)/i.test(lower)) {
+      const resp = window.jobsEngine.getJobsNeedingDoneVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📋 Pending Jobs Queue',
+        actionType: 'jobs'
+      };
+    }
+
+    // 10. Completed jobs list: "[AI NAME], what jobs are completed?", "completed jobs list", "finished jobs"
+    if (/(?:what\s+jobs\s+are\s+completed|completed\s+jobs(?:\s+list)?|show\s+completed\s+jobs|which\s+jobs\s+are\s+(?:completed|done)|finished\s+jobs|list\s+(?:of\s+)?completed\s+jobs)/i.test(lower)) {
+      const resp = window.jobsEngine.getCompletedJobsListVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '✅ Completed Jobs',
+        actionType: 'jobs'
+      };
+    }
+
+    // 11. Jobs in progress: "[AI NAME], what jobs are in progress?", "active jobs"
+    if (/(?:what\s+jobs\s+are\s+in\s+progress|jobs\s+in\s+progress|active\s+jobs(?:\s+list)?|facility\s+active\s+jobs|what\s+jobs\s+are\s+being\s+worked\s+on)/i.test(lower)) {
+      const resp = window.jobsEngine.getInProgressJobsVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '⚙️ Jobs In Progress',
+        actionType: 'jobs'
+      };
+    }
+
+    // 12. Facility jobs report / jobs database summary: "[AI NAME], jobs report", "jobs database summary"
+    if (/(?:jobs?\s+report|jobs?\s+status|jobs?\s+summary|jobs?\s+database(?:\s+summary)?|facility\s+jobs|assignments\s+summary|assignments\s+report)/i.test(lower)) {
+      const resp = window.jobsEngine.getFacilityJobsSummaryVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📊 Facility Jobs Report',
+        actionType: 'jobs'
+      };
+    }
+
+    // 13. Worker assigned jobs query: "[AI NAME], what is Alex working on?", "jobs assigned to Elena"
+    const workerJobsMatch = lower.match(/(?:what\s+(?:jobs?\s+does|is)\s+([a-zA-Z\s]+?)\s+(?:working\s+on|have|assigned)|jobs?\s+assigned\s+to\s+([a-zA-Z\s]+))/i);
+    if (workerJobsMatch) {
+      const targetWorker = (workerJobsMatch[1] || workerJobsMatch[2] || '').trim();
+      if (targetWorker && !['my', 'me', 'i', 'the', 'our'].includes(targetWorker)) {
+        const resp = window.jobsEngine.getWorkerJobsVoice(targetWorker);
+        return {
+          handled: true,
+          responseText: resp,
+          actionTag: '👤 Worker Assignments',
+          actionType: 'jobs'
+        };
+      }
+    }
+
     return null;
   }
 
@@ -272,7 +331,53 @@ class CommandEngine {
       };
     }
 
-    // 6. Clock Out: "[AI NAME], Clock out", "Clock me out" (Self-Only Enforcement)
+    // 6. Who is clocked in: "[AI NAME], who is clocked in?", "who's on shift?", "who is working?"
+    if (/(?:who(?:'s|\s+is|\s+'s)\s+(?:clocked\s+in|on\s+(?:the\s+)?shift|working|here|present|on\s+the\s+clock)|whos\s+(?:clocked\s+in|on\s+(?:the\s+)?shift|working|here|present|on\s+the\s+clock))/i.test(lower)) {
+      const resp = window.laborEngine.getWhoIsClockedInVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '👥 Clocked In Personnel',
+        actionType: 'labor'
+      };
+    }
+
+    // 7. Who is clocked out / not clocked in: "[AI NAME], who is clocked out?", "who is not clocked in?"
+    if (/(?:who(?:'s|\s+is|\s+'s)\s+(?:clocked\s+out|not\s+clocked\s+in|off\s+(?:the\s+)?shift|off\s+the\s+clock|absent)|whos\s+(?:clocked\s+out|not\s+clocked\s+in|off\s+(?:the\s+)?shift|off\s+the\s+clock|absent))/i.test(lower)) {
+      const resp = window.laborEngine.getWhoIsClockedOutVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '👥 Clocked Out Personnel',
+        actionType: 'labor'
+      };
+    }
+
+    // 8. How long has [name] been clocked in / how long have I been clocked in
+    const durationMatch = lower.match(/(?:how\s+long\s+(?:have\s+i|has\s+(.+?))\s+been\s+(?:clocked\s+in|on\s+(?:the\s+)?clock|working)|how\s+long\s+has\s+(.+?)\s+been\s+on\s+shift)/i);
+    if (durationMatch) {
+      const targetName = (durationMatch[1] || durationMatch[2] || '').trim();
+      const resp = window.laborEngine.getWorkerClockedInDurationVoice(targetName);
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '⏱️ Shift Duration Telemetry',
+        actionType: 'labor'
+      };
+    }
+
+    // 9. Shift status / workforce report: "[AI NAME], shift status", "shift report", "workforce report"
+    if (/(?:shift\s+status|shift\s+report|workforce\s+status|workforce\s+report|labor\s+status|labor\s+report|shift\s+summary|who\s+is\s+on\s+(?:the\s+)?shift)/i.test(lower)) {
+      const resp = window.laborEngine.getShiftStatusReportVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📊 Shift Status Report',
+        actionType: 'labor'
+      };
+    }
+
+    // 10. Clock Out: "[AI NAME], Clock out", "Clock me out" (Self-Only Enforcement)
     if (/(?:clock\s+(?:me\s+)?out|punch\s+out)/i.test(lower)) {
       // Check if user specifically requested to clock out another worker
       const targetMatch = lower.match(/(?:clock\s+(?:out\s+)?|punch\s+(?:out\s+)?)(?!me\b|myself\b|now\b|today\b)([a-zA-Z\s]+)/i);

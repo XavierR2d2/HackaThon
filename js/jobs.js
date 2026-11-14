@@ -917,6 +917,129 @@ class JobsEngine {
     return `You have ${remaining} step${remaining === 1 ? '' : 's'} remaining on "${activeJob.title}".`;
   }
 
+  // --- JOBS & ASSIGNMENTS DATABASE VOICE QUERIES ---
+  getJobsNeedingDoneVoice() {
+    const pending = this.jobs
+      .filter(j => j.status === 'not_started')
+      .sort((a, b) => a.priority - b.priority);
+
+    if (pending.length === 0) {
+      return 'There are currently no pending jobs waiting to be done, sir. All cleanroom assignments are either in progress or completed.';
+    }
+
+    const workers = this.getAllWorkers();
+    const summaries = pending.map(j => {
+      const worker = workers.find(w => w.id === j.assignedWorkerId);
+      const workerName = worker ? worker.name : 'Unassigned';
+      const steps = this.getStepsForJob(j.id);
+      return `Priority ${j.priority}: "${j.title}" assigned to ${workerName} (${steps.length} steps)`;
+    });
+
+    if (pending.length === 1) {
+      return `There is 1 job waiting to be done: ${summaries[0]}.`;
+    }
+
+    return `There are ${pending.length} jobs waiting to be done: ${summaries.join('; ')}.`;
+  }
+
+  getCompletedJobsListVoice() {
+    const completed = this.jobs.filter(j => j.status === 'completed');
+    if (completed.length === 0) {
+      return 'No cleanroom jobs have been marked completed yet today, sir.';
+    }
+
+    const workers = this.getAllWorkers();
+    const summaries = completed.map(j => {
+      const worker = workers.find(w => w.id === j.assignedWorkerId);
+      const workerName = worker ? worker.name : 'Technician';
+      const timeStr = j.completedAt ? new Date(j.completedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'earlier';
+      return `"${j.title}" completed by ${workerName} at ${timeStr}`;
+    });
+
+    if (completed.length === 1) {
+      return `1 cleanroom job has been completed today: ${summaries[0]}.`;
+    }
+
+    return `${completed.length} jobs are completed today: ${summaries.join('; ')}.`;
+  }
+
+  getInProgressJobsVoice() {
+    const inProgress = this.jobs.filter(j => j.status === 'in_progress');
+    if (inProgress.length === 0) {
+      return 'There are currently no jobs in progress across the cleanroom facility, sir.';
+    }
+
+    const workers = this.getAllWorkers();
+    const summaries = inProgress.map(j => {
+      const worker = workers.find(w => w.id === j.assignedWorkerId);
+      const workerName = worker ? worker.name : 'Technician';
+      const steps = this.getStepsForJob(j.id);
+      const done = steps.filter(s => s.completed).length;
+      return `"${j.title}" assigned to ${workerName} (${done} of ${steps.length} steps complete)`;
+    });
+
+    if (inProgress.length === 1) {
+      return `Currently 1 job is in progress: ${summaries[0]}.`;
+    }
+
+    return `${inProgress.length} jobs are currently in progress: ${summaries.join('; ')}.`;
+  }
+
+  getFacilityJobsSummaryVoice() {
+    const total = this.jobs.length;
+    const inProgress = this.jobs.filter(j => j.status === 'in_progress').length;
+    const completed = this.jobs.filter(j => j.status === 'completed').length;
+    const pending = this.jobs.filter(j => j.status === 'not_started').length;
+
+    const workerId = this.getCurrentWorkerId();
+    const activeJob = this.getActiveJob(workerId);
+    const upNext = this.getUpNextJob(workerId);
+
+    let userJobInfo = '';
+    if (activeJob) {
+      const steps = this.getStepsForJob(activeJob.id);
+      const done = steps.filter(s => s.completed).length;
+      userJobInfo = `Your active job is "${activeJob.title}" with ${done} of ${steps.length} steps completed.`;
+    } else if (upNext) {
+      userJobInfo = `Your next scheduled job is "${upNext.title}".`;
+    } else {
+      userJobInfo = 'All jobs assigned to you are complete.';
+    }
+
+    return `Jobs database report: ${total} total facility jobs. ${completed} completed, ${inProgress} in progress, and ${pending} waiting to be done. ${userJobInfo}`;
+  }
+
+  getWorkerJobsVoice(workerNameQuery) {
+    const workers = this.getAllWorkers();
+    const query = (workerNameQuery || '').trim().toLowerCase();
+    const worker = workers.find(w => w.name.toLowerCase().includes(query));
+
+    if (!worker) {
+      return `I could not find technician "${workerNameQuery}" in the workforce database, sir.`;
+    }
+
+    const workerJobs = this.jobs.filter(j => j.assignedWorkerId === worker.id);
+    if (workerJobs.length === 0) {
+      return `${worker.name} currently has no jobs assigned in the database.`;
+    }
+
+    const active = workerJobs.find(j => j.status === 'in_progress');
+    const pending = workerJobs.filter(j => j.status === 'not_started');
+    const completed = workerJobs.filter(j => j.status === 'completed');
+
+    let desc = `${worker.name} has ${workerJobs.length} assigned job${workerJobs.length === 1 ? '' : 's'}. `;
+    if (active) {
+      desc += `Currently working on "${active.title}". `;
+    }
+    if (pending.length > 0) {
+      desc += `${pending.length} job${pending.length === 1 ? '' : 's'} waiting. `;
+    }
+    if (completed.length > 0) {
+      desc += `${completed.length} completed.`;
+    }
+    return desc.trim();
+  }
+
   // --- NAVIGATION & VIEW FLIPPING ---
   isJobsOpen() {
     return this.isViewOpen;
