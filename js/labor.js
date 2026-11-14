@@ -652,16 +652,22 @@ class LaborEngine {
     const chatSection = document.querySelector('.chat-section');
     const actionSidebar = document.querySelector('.action-sidebar');
     const manageLaborSection = document.getElementById('manageLaborSection');
+    const jobsSection = document.getElementById('jobsSection');
     const navBtn = document.getElementById('navManageLaborBtn');
+    const navJobsBtn = document.getElementById('navJobsBtn');
 
     if (chatSection) chatSection.style.display = 'none';
     if (actionSidebar) actionSidebar.style.display = 'none';
+    if (jobsSection) jobsSection.style.display = 'none';
     if (manageLaborSection) {
       manageLaborSection.style.display = 'flex';
       manageLaborSection.classList.remove('fade-out');
       manageLaborSection.classList.add('fade-in');
     }
     if (navBtn) navBtn.classList.add('active');
+    if (navJobsBtn) navJobsBtn.classList.remove('active');
+
+    if (window.jobsEngine) window.jobsEngine.isViewOpen = false;
 
     this.render();
     return 'Opening Manage Labor';

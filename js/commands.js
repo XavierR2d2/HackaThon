@@ -32,7 +32,11 @@ class CommandEngine {
 
     const lower = input.toLowerCase();
 
-    // 0. Cleanroom Labor & Labor Clock Directives
+    // 0. Jobs & Cleanroom Assignments Directives
+    const jobsResult = this.handleJobsCommand(lower, input);
+    if (jobsResult) return jobsResult;
+
+    // 1. Cleanroom Labor & Labor Clock Directives
     const laborResult = this.handleLaborCommand(lower, input);
     if (laborResult) return laborResult;
 
@@ -77,6 +81,94 @@ class CommandEngine {
     if (funResult) return funResult;
 
     return null; // Delegate to conversational AI engine
+  }
+
+  /* ----------------------------------------------------
+     JOBS & ASSIGNMENTS DIRECTIVES
+     ---------------------------------------------------- */
+  handleJobsCommand(lower, original) {
+    if (!window.jobsEngine) return null;
+
+    // 1. Open Jobs: "[AI NAME], open Jobs", "go to Jobs", "flip to Jobs", "show Jobs"
+    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display)\s+(?:the\s+)?jobs/i.test(lower) ||
+        /^(?:jobs|cleanroom\s+jobs|assignments|open\s+jobs)$/i.test(lower)) {
+      const resp = window.jobsEngine.openJobs();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📋 Jobs & Assignments',
+        actionType: 'jobs'
+      };
+    }
+
+    // 2. Return / Back (if on Jobs section): "[AI NAME], go back"
+    if (window.jobsEngine.isJobsOpen && window.jobsEngine.isJobsOpen() &&
+        /(?:go\s+back|return\s+to\s+hud|back\s+to\s+hud|exit\s+jobs|close\s+jobs|^go\s+back$|^back$)/i.test(lower)) {
+      const resp = window.jobsEngine.closeJobs();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '↩️ Operational HUD',
+        actionType: 'jobs'
+      };
+    }
+
+    // 3. What's my current job: "[AI NAME], what's my current job?"
+    if (/(?:what(?:'s|\s+is)\s+my\s+current\s+job|current\s+job|what\s+job\s+am\s+i\s+on)/i.test(lower)) {
+      const resp = window.jobsEngine.getCurrentJobVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📋 Current Assignment',
+        actionType: 'jobs'
+      };
+    }
+
+    // 4. What's my next step: "[AI NAME], what's my next step?"
+    if (/(?:what(?:'s|\s+is)\s+my\s+next\s+step|next\s+step|what\s+step\s+is\s+next|what\s+should\s+i\s+do\s+next)/i.test(lower)) {
+      const resp = window.jobsEngine.getNextStepVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '👣 Next Step Protocol',
+        actionType: 'jobs'
+      };
+    }
+
+    // 5. Complete step: "[AI NAME], complete step", "check step", "step done", "finish step"
+    if (/(?:complete\s+step|check\s+(?:off\s+)?step|finish\s+step|step\s+done|check\s+step)/i.test(lower)) {
+      const resp = window.jobsEngine.completeNextStepVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '✅ Step Completed',
+        actionType: 'jobs'
+      };
+    }
+
+    // 6. Mark job complete: "[AI NAME], mark job complete", "complete job", "finish job"
+    if (/(?:mark\s+job\s+complete|complete\s+job|finish\s+job|mark\s+job\s+as\s+complete)/i.test(lower)) {
+      const resp = window.jobsEngine.markJobCompleteVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '🎉 Job Completed',
+        actionType: 'jobs'
+      };
+    }
+
+    // 7. How many steps are left: "[AI NAME], how many steps are left?"
+    if (/(?:how\s+many\s+steps\s+(?:are\s+)?left|steps\s+remaining|how\s+many\s+steps\s+remain)/i.test(lower)) {
+      const resp = window.jobsEngine.getStepsLeftVoice();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📊 Steps Telemetry',
+        actionType: 'jobs'
+      };
+    }
+
+    return null;
   }
 
   /* ----------------------------------------------------

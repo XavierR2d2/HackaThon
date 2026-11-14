@@ -70,6 +70,16 @@
           <span class="btn-label">Manage Labor</span>
         </button>
 
+        <!-- Cleanroom Jobs & Assignments Navigation Button -->
+        <button id="navJobsBtn" class="action-btn nav-jobs-btn" title="Cleanroom Jobs & Assignments Telemetry" aria-label="Jobs & Assignments">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+            <path d="M9 14l2 2 4-4"></path>
+          </svg>
+          <span class="btn-label">Jobs</span>
+        </button>
+
         <!-- Voice Output Toggle -->
         <button id="ttsToggleBtn" class="action-btn active" title="Toggle Vocal Synthesis">
           <svg class="icon-speaker" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -380,6 +390,128 @@
           </div>
         </div>
       </section>
+
+      <!-- Cleanroom Jobs & Assignments Section -->
+      <section class="jobs-section" id="jobsSection" style="display: none;" aria-label="Cleanroom Jobs & Assignments Section">
+        <!-- Jobs Header Bar -->
+        <div class="jobs-header-bar">
+          <div class="jobs-header-left">
+            <button id="backToHudFromJobsBtn" class="action-btn back-btn" title="Return to Operational HUD" aria-label="Return to Operational HUD">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>Back to HUD</span>
+            </button>
+            <div class="jobs-title-group">
+              <div class="jobs-title">
+                <span class="jobs-dot"></span>
+                <h2>Cleanroom Jobs & Assignments</h2>
+              </div>
+              <p class="jobs-sub">Applied Materials Fabrication Facility • Shift Operations Queue</p>
+            </div>
+          </div>
+          <div class="jobs-header-right">
+            <!-- Worker View / Manager View Switcher Tabs -->
+            <div class="jobs-tab-group">
+              <button type="button" id="tabWorkerViewBtn" class="action-btn tab-btn active">
+                👷 Worker View
+              </button>
+              <button type="button" id="tabManagerViewBtn" class="action-btn tab-btn">
+                📋 Manager View
+              </button>
+            </div>
+            <!-- Active Worker Switcher -->
+            <div class="jobs-worker-select-wrap">
+              <label for="jobsWorkerSelect" class="sr-only">Select Worker Queue</label>
+              <select id="jobsWorkerSelect" class="form-select jobs-worker-dropdown" aria-label="Select Worker Queue">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clock-in Notice (Shown if worker is clocked out) -->
+        <div class="jobs-clockin-notice" id="jobsClockinNotice" style="display: none;" role="alert">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- WORKER VIEW CONTAINER -->
+        <div class="jobs-view-container" id="jobsWorkerViewContainer">
+          <!-- All Jobs Done Celebratory Card -->
+          <div id="workerAllDoneSummary" style="display: none;"></div>
+
+          <!-- Active & Queued Jobs Column -->
+          <div class="worker-jobs-queue">
+            <div class="section-subheading">
+              <h3>Active & Queued Assignments (In Priority Order)</h3>
+              <span class="subheading-hint">Complete steps in order • Only 1 job in-progress at a time</span>
+            </div>
+            <div class="worker-jobs-list" id="workerActiveJobsList">
+              <!-- Dynamically populated via jobsEngine.renderWorkerView() -->
+            </div>
+          </div>
+
+          <!-- Completed Jobs History -->
+          <div class="worker-completed-section">
+            <div class="section-subheading">
+              <h3>Completed Assignments (Shift History)</h3>
+            </div>
+            <div class="worker-completed-list" id="workerCompletedJobsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- MANAGER VIEW CONTAINER -->
+        <div class="jobs-view-container" id="jobsManagerViewContainer" style="display: none;">
+          <!-- Top Manager Action Toolbar -->
+          <div class="manager-toolbar">
+            <div class="toolbar-title">
+              <h3>Facility Workforce & Job Allocation Overview</h3>
+              <p>Live status across all cleanroom technicians, current assignments, and shift progress</p>
+            </div>
+            <button type="button" id="managerCreateJobBtn" class="primary-btn add-job-btn">
+              + Create New Cleanroom Job
+            </button>
+          </div>
+
+          <!-- Manager Overview Table Card -->
+          <div class="widget-card manager-overview-card">
+            <div class="card-header">
+              <h4>Cleanroom Personnel Live Task Matrix</h4>
+            </div>
+            <div class="table-responsive">
+              <table class="manager-table" aria-label="Worker Job Overview Matrix">
+                <thead>
+                  <tr>
+                    <th>Technician</th>
+                    <th>Shift Status</th>
+                    <th>Current Job</th>
+                    <th>Steps Progress</th>
+                    <th>Job Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="managerOverviewTbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- All Jobs & Steps Management List -->
+          <div class="manager-jobs-section">
+            <div class="section-subheading">
+              <h3>Master Cleanroom Job Roster & Sequential Step Editor</h3>
+              <span class="subheading-hint">Reorder priorities & steps • Arrow controls • Live step sequencing</span>
+            </div>
+            <div class="manager-jobs-list" id="managerJobsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Settings Modal -->
@@ -535,6 +667,17 @@
               </ul>
             </div>
             <div class="help-card">
+              <h4>📋 Cleanroom Jobs & Sequential Steps</h4>
+              <ul>
+                <li>"Voxel, open Jobs"</li>
+                <li>"Voxel, what's my current job?"</li>
+                <li>"Voxel, what's my next step?"</li>
+                <li>"Voxel, complete step"</li>
+                <li>"Voxel, mark job complete"</li>
+                <li>"Voxel, how many steps are left?"</li>
+              </ul>
+            </div>
+            <div class="help-card">
               <h4>⚡ Interface HUD Protocols</h4>
               <ul>
                 <li>"Change theme to Stark" (Stark Arc HUD)</li>
@@ -562,6 +705,84 @@
         </div>
       </div>
     </div>
+
+    <!-- Create Job Modal -->
+    <div class="modal-overlay" id="jobCreateModal" aria-hidden="true">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2>+ Create Cleanroom Job Assignment</h2>
+          <button class="modal-close-btn modal-close-jobs">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="createJobForm">
+            <div class="form-row">
+              <label for="newJobTitle">Job Title:</label>
+              <input type="text" id="newJobTitle" class="form-input" placeholder="e.g. CVD Vacuum Purge & Deposition Prep" required />
+            </div>
+            <div class="form-row">
+              <label for="newJobDesc">Description (Optional):</label>
+              <textarea id="newJobDesc" class="form-input" rows="2" placeholder="Brief technical procedure overview..."></textarea>
+            </div>
+            <div class="form-row">
+              <label for="newJobWorkerSelect">Assign To Technician:</label>
+              <select id="newJobWorkerSelect" class="form-select">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="newJobPriority">Priority Order (1 = Top Priority):</label>
+              <input type="number" id="newJobPriority" class="form-input" min="1" max="99" value="1" required />
+            </div>
+            <div class="form-row">
+              <label for="newJobStepsText">Sequential Steps (One per line, in order):</label>
+              <textarea id="newJobStepsText" class="form-input" rows="4" placeholder="Inspect vacuum flange gaskets&#10;Initiate high-purity argon flush&#10;Verify mass flow controllers at 250 sccm" required></textarea>
+              <small class="form-hint">Steps are strictly sequential: lower-numbered steps must be completed before higher ones.</small>
+            </div>
+            <div class="modal-btn-row">
+              <button type="submit" class="primary-btn">Create & Assign Job</button>
+              <button type="button" class="ghost-btn modal-close-jobs">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Job Modal -->
+    <div class="modal-overlay" id="jobEditModal" aria-hidden="true">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2>Edit Cleanroom Assignment</h2>
+          <button class="modal-close-btn modal-close-jobs">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="editJobForm">
+            <input type="hidden" id="editJobId" />
+            <div class="form-row">
+              <label for="editJobTitle">Job Title:</label>
+              <input type="text" id="editJobTitle" class="form-input" required />
+            </div>
+            <div class="form-row">
+              <label for="editJobDesc">Description:</label>
+              <textarea id="editJobDesc" class="form-input" rows="2"></textarea>
+            </div>
+            <div class="form-row">
+              <label for="editJobWorkerSelect">Assigned Technician:</label>
+              <select id="editJobWorkerSelect" class="form-select">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="editJobPriority">Priority Order:</label>
+              <input type="number" id="editJobPriority" class="form-input" min="1" max="99" required />
+            </div>
+            <div class="modal-btn-row">
+              <button type="submit" class="primary-btn">Save Changes</button>
+              <button type="button" class="ghost-btn modal-close-jobs">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Audio Tone Synthesizer & Alarm (via Web Audio API) -->
@@ -570,6 +791,7 @@
   <!-- Scripts -->
   <script src="js/speech.js"></script>
   <script src="js/labor.js"></script>
+  <script src="js/jobs.js"></script>
   <script src="js/commands.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
