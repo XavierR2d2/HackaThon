@@ -1120,6 +1120,76 @@ class JobsEngine {
     this.render();
   }
 
+  openWorkerView() {
+    if (!this.isViewOpen) {
+      this.openJobs();
+    }
+    this.setViewMode('worker');
+    return 'Switched to cleanroom Worker View, sir.';
+  }
+
+  openManagerView() {
+    if (!this.isViewOpen) {
+      this.openJobs();
+    }
+    this.setViewMode('manager');
+    return 'Switched to cleanroom Manager Overview, sir.';
+  }
+
+  openWorkerQueueVoice(workerQuery) {
+    const allWorkers = this.getAllWorkers();
+    let targetWorker = null;
+
+    const q = (workerQuery || '').trim().toLowerCase();
+
+    // If specific technician query provided (and not generic phrases)
+    if (q && !['current', 'current job', 'active', 'active job', 'active technician', 'the current job', 'the active technician'].includes(q)) {
+      targetWorker = allWorkers.find(w => w.name.toLowerCase().includes(q));
+    }
+
+    // If no specific worker query or not found by name, find the technician currently working on an in-progress job
+    if (!targetWorker) {
+      const inProgressJob = this.jobs.find(j => j.status === 'in_progress');
+      if (inProgressJob) {
+        targetWorker = allWorkers.find(w => w.id === inProgressJob.assignedWorkerId);
+      }
+    }
+
+    // Fallback to active operator profile
+    if (!targetWorker) {
+      targetWorker = this.getCurrentWorker() || allWorkers[0];
+    }
+
+    if (!targetWorker) {
+      return 'No cleanroom technician found in workforce database, sir.';
+    }
+
+    // Open Jobs section if not already open
+    if (!this.isViewOpen) {
+      this.openJobs();
+    }
+
+    // Trigger View Queue action for that worker
+    this.switchToWorkerAndFilter(targetWorker.id);
+
+    // Find what job they are currently working on
+    const activeJob = this.getActiveJob(targetWorker.id);
+    const upNextJob = this.getUpNextJob(targetWorker.id);
+
+    if (activeJob) {
+      const steps = this.getStepsForJob(activeJob.id);
+      const done = steps.filter(s => s.completed).length;
+      return `Opened job queue for ${targetWorker.name}. Currently working on "${activeJob.title}" with ${done} of ${steps.length} steps completed.`;
+    }
+
+    if (upNextJob) {
+      const steps = this.getStepsForJob(upNextJob.id);
+      return `Opened job queue for ${targetWorker.name}. No jobs currently in progress; up next is "${upNextJob.title}" (${steps.length} steps).`;
+    }
+
+    return `Opened job queue for ${targetWorker.name}. All assigned cleanroom jobs are completed.`;
+  }
+
   // --- RENDERING METHODS ---
   render() {
     this.renderHeader();

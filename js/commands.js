@@ -36,6 +36,10 @@ class CommandEngine {
     const transcriptResult = this.handleTranscriptCommand(lower, input);
     if (transcriptResult) return transcriptResult;
 
+    // 0b. Voxel Command Protocols Panel Directives
+    const protocolsResult = this.handleProtocolsCommand(lower, input);
+    if (protocolsResult) return protocolsResult;
+
     // 1. Jobs & Cleanroom Assignments Directives
     const jobsResult = this.handleJobsCommand(lower, input);
     if (jobsResult) return jobsResult;
@@ -110,6 +114,39 @@ class CommandEngine {
   }
 
   /* ----------------------------------------------------
+     VOXEL COMMAND PROTOCOLS PANEL DIRECTIVES
+     ---------------------------------------------------- */
+  handleProtocolsCommand(lower, original) {
+    // 1. Directives to open the Voxel Command Protocols Panel:
+    // e.g. "open command protocols", "open protocols panel", "show command protocols", "command protocols"
+    if (/(?:open|show|display|launch|view|flip\s+to|switch\s+to)\s+(?:the\s+)?(?:voxel\s+)?(?:command\s+)?protocols(?:\s+panel|\s+guide|\s+modal|\s+screen|\s+tab|\s+window)?/i.test(lower) ||
+        /^(?:command\s+protocols|protocols\s+panel|voxel\s+command\s+protocols|help\s+protocols|cheatsheet)$/i.test(lower)) {
+      const resp = window.openCommandProtocols ? window.openCommandProtocols() : 'Opening Command Protocols panel, sir.';
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '🎙️ Command Protocols Opened',
+        actionType: 'protocols'
+      };
+    }
+
+    // 2. Directives to close out the Voxel Command Protocols Panel:
+    // e.g. "close command protocols", "close protocols panel", "dismiss protocols", "close protocols"
+    if (/(?:close|hide|dismiss|exit)\s+(?:the\s+)?(?:voxel\s+)?(?:command\s+)?protocols(?:\s+panel|\s+guide|\s+modal|\s+screen|\s+tab|\s+window)?/i.test(lower) ||
+        /^(?:close\s+protocols|exit\s+protocols|dismiss\s+protocols|close\s+cheatsheet)$/i.test(lower)) {
+      const resp = window.closeCommandProtocols ? window.closeCommandProtocols() : 'Closing Command Protocols panel, sir.';
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '↩️ Protocols Closed',
+        actionType: 'protocols'
+      };
+    }
+
+    return null;
+  }
+
+  /* ----------------------------------------------------
      JOBS & ASSIGNMENTS DIRECTIVES
      ---------------------------------------------------- */
   handleJobsCommand(lower, original) {
@@ -123,6 +160,44 @@ class CommandEngine {
         handled: true,
         responseText: resp,
         actionTag: '📋 Jobs & Assignments',
+        actionType: 'jobs'
+      };
+    }
+
+    // 1b. Worker View: "[AI NAME], open worker view", "switch to worker view", "show worker view"
+    if (/(?:open|switch\s+to|flip\s+to|show|view|display|go\s+to)\s+(?:the\s+)?worker(?:\s+view)?(?:\s+tab)?/i.test(lower) ||
+        /^(?:worker\s+view|worker)(?:\s+tab)?$/i.test(lower)) {
+      const resp = window.jobsEngine.openWorkerView();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '👷 Worker View Active',
+        actionType: 'jobs'
+      };
+    }
+
+    // 1c. Manager View: "[AI NAME], open manager view", "switch to manager view", "show manager view"
+    if (/(?:open|switch\s+to|flip\s+to|show|view|display|go\s+to)\s+(?:the\s+)?manager(?:\s+view|\s+overview)?(?:\s+tab)?/i.test(lower) ||
+        /^(?:manager\s+view|manager\s+overview|manager)(?:\s+tab)?$/i.test(lower)) {
+      const resp = window.jobsEngine.openManagerView();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '👔 Manager View Active',
+        actionType: 'jobs'
+      };
+    }
+
+    // 1d. View Queue: "[AI NAME], view queue", "view queue for Elena", "view queue for current job", "open view queue"
+    const queueMatch = lower.match(/(?:view\s+(?:the\s+)?queue|open\s+(?:the\s+)?queue|show\s+(?:the\s+)?queue)(?:\s+(?:for\s+)?(.+))?/i) ||
+                       lower.match(/(?:view|open|show)\s+(.+?)'s\s+queue/i);
+    if (queueMatch && !/^(?:what|which|list)\b/i.test(lower)) {
+      const technicianTarget = queueMatch ? (queueMatch[1] || '').trim() : '';
+      const resp = window.jobsEngine.openWorkerQueueVoice(technicianTarget);
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📋 Worker Queue Opened',
         actionType: 'jobs'
       };
     }
@@ -931,32 +1006,33 @@ class CommandEngine {
       };
     }
 
-    if (/(mute\s+voice|turn\s+off\s+voice|disable\s+voice|mute\s+audio)/i.test(lower)) {
-      window.speechEngine.ttsEnabled = false;
-      const ttsBtn = document.getElementById('ttsToggleBtn');
-      if (ttsBtn) {
-        ttsBtn.classList.remove('active');
-        ttsBtn.querySelector('.btn-label').textContent = 'Vocal: OFF';
+    // Turn off vocal speaking: "turn off vocal speaking", "turn off the vocal speaking part of the AI agent", "mute voice", "voice off"
+    if (/(?:turn\s+off|disable|mute|silence|deactivate)\s+(?:the\s+)?(?:vocal\s+speaking|vocal(?:\s+synthesis)?|speaking|voice|audio|speech)(?:\s+(?:part|module|output))?(?:\s+of\s+(?:the\s+)?(?:ai(?:\s+agent)?|assistant|voxel|jarvis))?|^(?:voice|vocal|speaking)\s+off$/i.test(lower)) {
+      if (window.setVocalSpeechEnabled) {
+        window.setVocalSpeechEnabled(false);
+      } else if (window.speechEngine) {
+        window.speechEngine.ttsEnabled = false;
+        window.speechEngine.stopSpeaking();
       }
       return {
         handled: true,
-        responseText: `Vocal synthesis module disabled, sir. Proceeding with visual telemetry only.`,
-        actionTag: '🔇 Vocal Muted',
+        responseText: 'Vocal speaking has been turned off, sir. Standing by in silent protocol.',
+        actionTag: '🔇 Vocal Speaking OFF',
         actionType: 'system'
       };
     }
 
-    if (/(unmute\s+voice|turn\s+on\s+voice|enable\s+voice|enable\s+audio)/i.test(lower)) {
-      window.speechEngine.ttsEnabled = true;
-      const ttsBtn = document.getElementById('ttsToggleBtn');
-      if (ttsBtn) {
-        ttsBtn.classList.add('active');
-        ttsBtn.querySelector('.btn-label').textContent = 'Vocal: ON';
+    // Turn on vocal speaking: "turn on vocal speaking", "turn on voice", "unmute voice", "voice on"
+    if (/(?:turn\s+on|enable|unmute|activate)\s+(?:the\s+)?(?:vocal\s+speaking|vocal(?:\s+synthesis)?|speaking|voice|audio|speech)(?:\s+(?:part|module|output))?(?:\s+of\s+(?:the\s+)?(?:ai(?:\s+agent)?|assistant|voxel|jarvis))?|^(?:voice|vocal|speaking)\s+on$/i.test(lower)) {
+      if (window.setVocalSpeechEnabled) {
+        window.setVocalSpeechEnabled(true);
+      } else if (window.speechEngine) {
+        window.speechEngine.ttsEnabled = true;
       }
       return {
         handled: true,
-        responseText: `Vocal synthesis module restored, sir.`,
-        actionTag: '🔊 Vocal Enabled',
+        responseText: 'Vocal speaking restored, sir. Telemetry readback online.',
+        actionTag: '🔊 Vocal Speaking ON',
         actionType: 'system'
       };
     }

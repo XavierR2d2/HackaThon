@@ -30,6 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const nameInput = document.getElementById('assistantNameInput');
     if (nameInput) nameInput.value = cleanName;
 
+    // Update Command Protocols Modal Title
+    const helpTitle = document.getElementById('helpModalTitle');
+    if (helpTitle) helpTitle.textContent = `🎙️ ${cleanName} Command Protocols`;
+
     // Update AI Sender labels in existing chat
     document.querySelectorAll('.message-row.ai .msg-sender').forEach(el => {
       el.textContent = `${cleanName} (Applied Materials)`;
@@ -975,8 +979,54 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   closeSettingsBtn.addEventListener('click', () => closeModal(settingsModal));
 
-  helpModalBtn.addEventListener('click', () => openModal(helpModal));
-  closeHelpBtn.addEventListener('click', () => closeModal(helpModal));
+  helpModalBtn.addEventListener('click', () => window.openCommandProtocols());
+  closeHelpBtn.addEventListener('click', () => window.closeCommandProtocols());
+
+  // Global Helpers for Vocal Speech & Command Protocols Panel
+  window.openCommandProtocols = function () {
+    const titleEl = document.getElementById('helpModalTitle');
+    if (titleEl) {
+      titleEl.textContent = `🎙️ ${window.getAssistantName ? window.getAssistantName() : 'Voxel'} Command Protocols`;
+    }
+    openModal(helpModal);
+    return `Opening ${window.getAssistantName ? window.getAssistantName() : 'Voxel'} Command Protocols panel, sir.`;
+  };
+
+  window.closeCommandProtocols = function () {
+    if (helpModal && helpModal.classList.contains('open')) {
+      closeModal(helpModal);
+      return 'Closing Command Protocols panel, sir.';
+    }
+    return 'Command Protocols panel is not currently open, sir.';
+  };
+
+  window.setVocalSpeechEnabled = function (enabled) {
+    if (speechEngine) {
+      speechEngine.ttsEnabled = !!enabled;
+      if (!enabled) {
+        speechEngine.stopSpeaking();
+      }
+    }
+    if (ttsToggleBtn) {
+      if (enabled) {
+        ttsToggleBtn.classList.add('active');
+        const lbl = ttsToggleBtn.querySelector('.btn-label');
+        if (lbl) lbl.textContent = 'Vocal: ON';
+      } else {
+        ttsToggleBtn.classList.remove('active');
+        const lbl = ttsToggleBtn.querySelector('.btn-label');
+        if (lbl) lbl.textContent = 'Vocal: OFF';
+      }
+    }
+    return enabled;
+  };
+
+  const navProtocolsBtn = document.getElementById('navProtocolsBtn');
+  if (navProtocolsBtn) {
+    navProtocolsBtn.addEventListener('click', () => {
+      window.openCommandProtocols();
+    });
+  }
 
   [settingsModal, helpModal].forEach(modal => {
     modal.addEventListener('click', (e) => {

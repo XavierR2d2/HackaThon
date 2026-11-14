@@ -2150,11 +2150,23 @@ button {
 
 .nav-transcript-btn.active,
 .nav-labor-btn.active,
-.nav-jobs-btn.active {
+.nav-jobs-btn.active,
+.nav-protocols-btn.active {
   background: rgba(0, 240, 255, 0.2);
   border-color: var(--accent-primary);
   color: var(--accent-primary);
   box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.nav-protocols-btn {
+  border-color: rgba(0, 240, 255, 0.35);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-protocols-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 @media (max-width: 960px) {

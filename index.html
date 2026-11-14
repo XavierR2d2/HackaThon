@@ -88,6 +88,18 @@
           <span class="btn-label">Jobs</span>
         </button>
 
+        <!-- Voxel Command Protocols Navigation Button -->
+        <button id="navProtocolsBtn" class="action-btn nav-protocols-btn" title="Voxel Command Protocols Guide" aria-label="Command Protocols">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span class="btn-label">Command Protocols</span>
+        </button>
+
         <!-- Global Acoustic Sensor / Mic Toggle (Active on all tabs) -->
         <button id="headerMicBtn" class="action-btn header-mic-btn active" title="Toggle Acoustic Sensors / Microphone" aria-label="Toggle Microphone Sensor">
           <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -659,7 +671,7 @@
     <div class="modal-overlay" id="helpModal" aria-hidden="true">
       <div class="modal-window">
         <div class="modal-header">
-          <h2>🎙️ Voxel Command Protocols</h2>
+          <h2 id="helpModalTitle">🎙️ Voxel Command Protocols</h2>
           <button class="modal-close-btn" id="closeHelpBtn">&times;</button>
         </div>
         <div class="modal-body">
@@ -676,18 +688,19 @@
               </ul>
             </div>
             <div class="help-card">
-              <h4>📊 Cleanroom Labor & Labor Clock</h4>
+              <h4>📊 Cleanroom Labor & Shifts</h4>
               <ul>
                 <li>"Voxel, Start Labor Clock" / "Stop Labor Clock"</li>
                 <li>"Voxel, Clock me in" / "Clock me out"</li>
-                <li>"Voxel, how long has the labor clock been going?"</li>
-                <li>"Voxel, open Manage Labor" / "open Labor tab"</li>
-                <li>"Voxel, open Operational Transcript" / "open Start-up Screen"</li>
+                <li>"Voxel, who is clocked in?" / "who is clocked out?"</li>
+                <li>"Voxel, how long has Elena been clocked in?"</li>
+                <li>"Voxel, shift status report"</li>
+                <li>"Voxel, open Manage Labor"</li>
                 <li>"Voxel, simulate next day"</li>
               </ul>
             </div>
             <div class="help-card">
-              <h4>📋 Cleanroom Jobs & Sequential Steps</h4>
+              <h4>📋 Cleanroom Jobs & Steps</h4>
               <ul>
                 <li>"Voxel, open Jobs"</li>
                 <li>"Voxel, what's my current job?"</li>
@@ -696,6 +709,34 @@
                 <li>"Voxel, Read Step 2"</li>
                 <li>"Voxel, mark job complete"</li>
                 <li>"Voxel, how many steps are left?"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>👔 Manager & Worker Views</h4>
+              <ul>
+                <li>"Voxel, open worker view" / "switch to worker view"</li>
+                <li>"Voxel, open manager view" / "switch to manager view"</li>
+                <li>"Voxel, view queue" (opens active technician's job queue)</li>
+                <li>"Voxel, view queue for Alex" / "view queue for Elena"</li>
+                <li>"Voxel, what jobs need to be done?" / "pending jobs"</li>
+                <li>"Voxel, what jobs are completed?" / "in progress jobs"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🔇 Vocal Speech & Audio Controls</h4>
+              <ul>
+                <li>"Voxel, turn off vocal speaking"</li>
+                <li>"Voxel, mute voice" / "voice off"</li>
+                <li>"Voxel, turn on vocal speaking" / "unmute voice"</li>
+                <li>"Voxel, stop speaking" / "be quiet"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🎙️ Command Protocols Navigation</h4>
+              <ul>
+                <li>"Voxel, open command protocols" / "protocols panel"</li>
+                <li>"Voxel, close command protocols" / "dismiss protocols"</li>
+                <li>"Voxel, open Operational Transcript" / "go back"</li>
               </ul>
             </div>
             <div class="help-card">
