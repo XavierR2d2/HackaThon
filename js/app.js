@@ -86,6 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navLaborBtn) navLaborBtn.classList.remove('active');
     if (navJobsBtn) navJobsBtn.classList.remove('active');
 
+    // Ensure acoustic sensors remain actively listening across tabs
+    if (window.speechEngine && window.speechEngine.continuousMode && !window.speechEngine.isListening && !window.speechEngine.manualStop) {
+      window.speechEngine.startListening();
+    }
+
     if (!isLaborOpen && !isJobsOpen) {
       return 'You are already on the Operational Transcript screen, sir.';
     }
@@ -455,6 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = window.getAssistantName();
         const ackReply = `At your service, sir. Standing by for directives.`;
         appendAiMessage(ackReply, `🤖 ${name} Standing By`);
+        if (window.showActionToast) {
+          window.showActionToast(ackReply, `🤖 ${name} Standing By`);
+        }
         speechEngine.speak(ackReply);
         systemStatus.querySelector('.status-text').textContent = `Listening for directive, sir...`;
         micStatusLabel.textContent = `Awaiting your directive, sir... (10s window)`;
@@ -478,6 +486,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return; // Harmless ambient events during continuous background listening
     }
     micBtn.classList.remove('active');
+    const headerMicBtn = document.getElementById('headerMicBtn');
+    const headerMicLabel = document.getElementById('headerMicLabel');
+    if (headerMicBtn) headerMicBtn.classList.remove('active');
+    if (headerMicLabel) headerMicLabel.textContent = 'Mic: OFF';
+
     aiOrb.className = 'ai-orb';
     systemStatus.className = 'status-indicator';
     systemStatus.querySelector('.status-text').textContent = 'Sensor Standby';
@@ -491,6 +504,11 @@ document.addEventListener('DOMContentLoaded', () => {
   speechEngine.onEndCallback = () => {
     if (!speechEngine.continuousMode || speechEngine.manualStop) {
       micBtn.classList.remove('active');
+      const headerMicBtn = document.getElementById('headerMicBtn');
+      const headerMicLabel = document.getElementById('headerMicLabel');
+      if (headerMicBtn) headerMicBtn.classList.remove('active');
+      if (headerMicLabel) headerMicLabel.textContent = 'Mic: OFF';
+
       aiOrb.className = 'ai-orb';
       systemStatus.className = 'status-indicator';
       systemStatus.querySelector('.status-text').textContent = 'Sensor Standby';
@@ -512,6 +530,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   speechEngine.onSpeechEndCallback = () => {
     isAiSpeaking = false;
+    const headerMicBtn = document.getElementById('headerMicBtn');
+    const headerMicLabel = document.getElementById('headerMicLabel');
     if (speechEngine.isListening) {
       aiOrb.className = 'ai-orb listening';
       systemStatus.className = 'status-indicator listening';
@@ -520,10 +540,14 @@ document.addEventListener('DOMContentLoaded', () => {
       micStatusLabel.textContent = `Acoustic sensors active. Always listening for "${name}"...`;
       liveAudioPill.className = 'live-pill active';
       liveAudioPill.textContent = 'LISTENING';
+      if (headerMicBtn) headerMicBtn.classList.add('active');
+      if (headerMicLabel) headerMicLabel.textContent = 'Mic: ON';
     } else {
       aiOrb.className = 'ai-orb';
       systemStatus.className = 'status-indicator';
       systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
+      if (headerMicBtn) headerMicBtn.classList.remove('active');
+      if (headerMicLabel) headerMicLabel.textContent = 'Mic: OFF';
     }
   };
 
@@ -534,6 +558,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     speechEngine.toggleListening();
   });
+
+  const headerMicBtn = document.getElementById('headerMicBtn');
+  if (headerMicBtn) {
+    headerMicBtn.addEventListener('click', () => {
+      if (!speechEngine.hasRecognition) {
+        alert('Your browser does not support Speech Recognition. Please run on Google Chrome or Microsoft Edge.');
+        return;
+      }
+      speechEngine.toggleListening();
+    });
+  }
+
+  if (aiOrb) {
+    aiOrb.style.cursor = 'pointer';
+    aiOrb.setAttribute('tabindex', '0');
+    aiOrb.setAttribute('role', 'button');
+    aiOrb.setAttribute('aria-label', 'Toggle Acoustic Sensors (Arc Reactor)');
+    aiOrb.addEventListener('click', () => {
+      if (!speechEngine.hasRecognition) {
+        alert('Your browser does not support Speech Recognition. Please run on Google Chrome or Microsoft Edge.');
+        return;
+      }
+      speechEngine.toggleListening();
+    });
+    aiOrb.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        speechEngine.toggleListening();
+      }
+    });
+  }
 
   /* --------------------------------------------------------------------------
      4. FORM SUBMISSION (TEXT INPUT)
@@ -568,6 +623,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (commandResult && commandResult.handled) {
       appendAiMessage(commandResult.responseText, commandResult.actionTag);
       systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
+      if (window.showActionToast) {
+        window.showActionToast(commandResult.responseText, commandResult.actionTag || 'Voxel Telemetry');
+      }
       speechEngine.speak(commandResult.responseText);
       return;
     }
@@ -582,15 +640,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const assistantName = window.getAssistantName ? window.getAssistantName() : 'Voxel';
         const reply = await window.GeminiAI.ask(text, assistantName);
         appendAiMessage(reply, '⚡ Gemini AI');
+        if (window.showActionToast) {
+          window.showActionToast(reply, '⚡ Gemini AI');
+        }
         speechEngine.speak(reply);
       } else {
         const notConnectedReply = 'Please connect a Gemini API key in Settings, sir.';
         appendAiMessage(notConnectedReply, '⚠️ Key Required', true);
+        if (window.showActionToast) {
+          window.showActionToast(notConnectedReply, '⚠️ Key Required');
+        }
         speechEngine.speak(notConnectedReply);
       }
     } catch (err) {
       const errMsg = `Neural uplink error: ${err.message || err}`;
       appendAiMessage(errMsg, '⚠️ Uplink Error');
+      if (window.showActionToast) {
+        window.showActionToast(errMsg, '⚠️ Uplink Error');
+      }
       speechEngine.speak(errMsg);
     } finally {
       sendBtn.disabled = false;

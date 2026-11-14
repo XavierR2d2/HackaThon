@@ -950,6 +950,11 @@ class JobsEngine {
 
     if (window.laborEngine) window.laborEngine.isViewOpen = false;
 
+    // Ensure acoustic sensors remain actively listening across tabs
+    if (window.speechEngine && window.speechEngine.continuousMode && !window.speechEngine.isListening && !window.speechEngine.manualStop) {
+      window.speechEngine.startListening();
+    }
+
     this.render();
     return 'Opening Jobs & Assignments';
   }

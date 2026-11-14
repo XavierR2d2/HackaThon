@@ -677,6 +677,11 @@ class LaborEngine {
 
     if (window.jobsEngine) window.jobsEngine.isViewOpen = false;
 
+    // Ensure acoustic sensors remain actively listening across tabs
+    if (window.speechEngine && window.speechEngine.continuousMode && !window.speechEngine.isListening && !window.speechEngine.manualStop) {
+      window.speechEngine.startListening();
+    }
+
     this.render();
     return 'Opening Manage Labor';
   }
