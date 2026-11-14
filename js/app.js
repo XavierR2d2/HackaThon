@@ -99,9 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const speechDuration = document.getElementById('speechDuration');
   const liveAudioPill = document.getElementById('liveAudioPill');
 
-  // Visualizer Canvases
-  const waveformCanvas = document.getElementById('waveformCanvas');
-  const waveCtx = waveformCanvas ? waveformCanvas.getContext('2d') : null;
+  // Visualizer Canvases (Sidebar Multi-Bar Frequency Equalizer)
   const liveBarsCanvas = document.getElementById('liveBarsCanvas');
   const barsCtx = liveBarsCanvas ? liveBarsCanvas.getContext('2d') : null;
 
@@ -1119,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* --------------------------------------------------------------------------
-     11. AUDIO VISUALIZERS (HEADER WAVE & SIDEBAR EQUALIZER)
+     11. AUDIO VISUALIZERS (SIDEBAR EQUALIZER)
      -------------------------------------------------------------------------- */
   let wavePhase = 0;
 
@@ -1130,34 +1128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSpeaking = isAiSpeaking;
     const audioData = speechEngine.getAudioData();
 
-    // 1. Header Smooth Sinusoidal HUD Waveform
-    if (waveCtx && waveformCanvas) {
-      const w = waveformCanvas.width;
-      const h = waveformCanvas.height;
-      waveCtx.clearRect(0, 0, w, h);
-
-      waveCtx.lineWidth = 2;
-      let strokeColor = '#00f0ff';
-      if (isListening) strokeColor = '#ef4444';
-      else if (isSpeaking) strokeColor = '#f59e0b';
-
-      waveCtx.strokeStyle = strokeColor;
-      waveCtx.beginPath();
-
-      const centerY = h / 2;
-      const amplitude = (isListening || isSpeaking) ? 14 : 3;
-      const frequency = (isListening || isSpeaking) ? 0.05 : 0.02;
-
-      for (let x = 0; x < w; x++) {
-        const y = centerY + Math.sin(x * frequency + wavePhase) * amplitude;
-        if (x === 0) waveCtx.moveTo(x, y);
-        else waveCtx.lineTo(x, y);
-      }
-      waveCtx.stroke();
-      wavePhase += (isListening || isSpeaking) ? 0.12 : 0.025;
-    }
-
-    // 2. Sidebar Multi-Bar Frequency Equalizer
+    // Sidebar Multi-Bar Frequency Equalizer
     if (barsCtx && liveBarsCanvas) {
       const bw = liveBarsCanvas.width;
       const bh = liveBarsCanvas.height;
