@@ -283,10 +283,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     if (!cleanName) return null;
 
-    // Pattern for matching: supports clean word (e.g. "jarvis", "friday") or spaced letters (e.g. "j a r v i s")
+    // Comprehensive list of wake-word aliases and phonetic misrecognitions of "Voxel"
+    // e.g. "voxal", "voxyl", "voxle", "vocal", "vocals", "boxel", "foxel", "vaxil", "vaxel", "voxels"
+    const aliases = [
+      'voxel', 'voxels', 'voxel\'s', 'voxels\'', 'voxal', 'voxall', 'voxyl', 'voxle',
+      'vocal', 'vocals', 'vaxil', 'vaxel', 'boxel', 'foxel',
+      'jarvis', 'friday', 'edith'
+    ];
+    if (!aliases.includes(cleanName)) {
+      aliases.unshift(cleanName);
+    }
+
     const spacedLetters = cleanName.split('').join('[\\s\\.]*');
     const escapedClean = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const namePattern = `(?:${escapedClean}|${spacedLetters})`;
+    const namePattern = `(?:${escapedClean}|${spacedLetters}|${aliases.join('|')})`;
 
     // Match wake word at start or with conversational prefix ("hey", "hi", "ok", "okay", "hello")
     const prefixWakeRegex = new RegExp(`(?:^|\\b)(?:hey|hi|hello|ok|okay)\\s+${namePattern}\\b`, 'i');
@@ -317,8 +327,43 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Toast notification for global feedback across tabs
+  window.showActionToast = function (text, tag = 'Voxel Directive') {
+    let container = document.getElementById('actionToastContainer');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'actionToastContainer';
+      container.className = 'action-toast-container';
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'action-toast';
+    toast.innerHTML = `
+      <div class="toast-dot"></div>
+      <div class="toast-content">
+        <strong style="font-size:0.75rem; text-transform:uppercase; color:var(--accent-primary); display:block; letter-spacing:0.04em;">${escapeHtml(tag)}</strong>
+        <span style="font-size:0.88rem; color:var(--text-main); font-weight:500;">${escapeHtml(text)}</span>
+      </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 350);
+    }, 4500);
+  };
+
   speechEngine.onStartCallback = () => {
     micBtn.classList.add('active');
+    const headerMicBtn = document.getElementById('headerMicBtn');
+    const headerMicLabel = document.getElementById('headerMicLabel');
+    if (headerMicBtn) headerMicBtn.classList.add('active');
+    if (headerMicLabel) headerMicLabel.textContent = 'Mic: ON';
+
     aiOrb.className = 'ai-orb listening';
     systemStatus.className = 'status-indicator listening';
     const name = window.getAssistantName();

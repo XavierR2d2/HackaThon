@@ -88,6 +88,17 @@
           <span class="btn-label">Jobs</span>
         </button>
 
+        <!-- Global Acoustic Sensor / Mic Toggle (Active on all tabs) -->
+        <button id="headerMicBtn" class="action-btn header-mic-btn active" title="Toggle Acoustic Sensors / Microphone" aria-label="Toggle Microphone Sensor">
+          <svg class="mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+          <span class="btn-label" id="headerMicLabel">Mic: ON</span>
+        </button>
+
         <!-- Voice Output Toggle -->
         <button id="ttsToggleBtn" class="action-btn active" title="Toggle Vocal Synthesis">
           <svg class="icon-speaker" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -150,13 +161,6 @@
         <!-- Chat Messages Container -->
         <div class="chat-messages" id="chatMessages">
           <!-- Injected via JS -->
-        </div>
-
-        <!-- Live Speech Recognition Interim Preview Toast -->
-        <div class="speech-interim-box" id="interimBox">
-          <div class="speech-pulse-ring"></div>
-          <span class="interim-label">Audio Sensor:</span>
-          <span class="interim-text" id="interimText">"Awaiting vocal input..."</span>
         </div>
 
         <!-- Unified Input Bar (Text + Voice) -->
@@ -521,6 +525,13 @@
         </div>
       </section>
     </main>
+
+    <!-- Global Speech Recognition Live Interim Preview Toast (Active on all tabs) -->
+    <div class="speech-interim-box" id="interimBox">
+      <div class="speech-pulse-ring"></div>
+      <span class="interim-label">Audio Sensor:</span>
+      <span class="interim-text" id="interimText">"Awaiting vocal input..."</span>
+    </div>
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal" aria-hidden="true">

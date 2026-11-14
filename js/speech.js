@@ -115,11 +115,14 @@ class SpeechEngine {
       // Continuous mode restart if user enabled continuous listening
       if (this.continuousMode && !this.manualStop) {
         this.isSilentRestart = true;
-        setTimeout(() => {
-          if (this.continuousMode && !this.isListening) {
-            this.startListening();
+        const attemptRestart = (retryCount = 0) => {
+          if (!this.continuousMode || this.manualStop || this.isListening) return;
+          const success = this.startListening();
+          if (!success && retryCount < 5) {
+            setTimeout(() => attemptRestart(retryCount + 1), 250 * (retryCount + 1));
           }
-        }, 150);
+        };
+        setTimeout(() => attemptRestart(0), 120);
       }
     };
   }
@@ -319,6 +322,9 @@ class SpeechEngine {
     }
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
+    this._currentUtterance = utterance;
+    window._activeUtterance = utterance;
+
     if (this.selectedVoice) {
       utterance.voice = this.selectedVoice;
     }
@@ -330,20 +336,31 @@ class SpeechEngine {
       if (this.onSpeechStartCallback) this.onSpeechStartCallback();
     };
 
-    utterance.onend = () => {
+    const cleanupSpeaking = () => {
+      clearTimeout(this._speakingTimeout);
       setTimeout(() => {
         this.isSpeaking = false;
-      }, 350);
+      }, 250);
       if (this.onSpeechEndCallback) this.onSpeechEndCallback();
       if (onComplete) onComplete();
     };
 
+    utterance.onend = cleanupSpeaking;
     utterance.onerror = (e) => {
       console.warn('Speech synthesis utterance error:', e);
-      this.isSpeaking = false;
-      if (this.onSpeechEndCallback) this.onSpeechEndCallback();
-      if (onComplete) onComplete();
+      cleanupSpeaking();
     };
+
+    // Safety timeout in case browser drops onend
+    const wordCount = cleanText.split(/\s+/).length;
+    const maxDurationMs = Math.max(3500, (wordCount / (this.rate * 2.2)) * 1000 + 2000);
+    clearTimeout(this._speakingTimeout);
+    this._speakingTimeout = setTimeout(() => {
+      if (this.isSpeaking) {
+        this.isSpeaking = false;
+        if (this.onSpeechEndCallback) this.onSpeechEndCallback();
+      }
+    }, maxDurationMs);
 
     window.speechSynthesis.speak(utterance);
   }
