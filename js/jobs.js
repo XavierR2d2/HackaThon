@@ -349,7 +349,7 @@ class JobsEngine {
 
     // Clock-in requirement
     if (!this.isWorkerClockedIn(targetWorkerId)) {
-      return { allowed: false, reason: 'clocked_out', message: 'Clock in before starting a job. Please clock in to active shift first, sir.' };
+      return { allowed: false, reason: 'clocked_out', message: 'Clock in before starting a job.' };
     }
 
     const step = this.steps.find(s => s.id === stepId);
@@ -372,7 +372,7 @@ class JobsEngine {
       return {
         allowed: false,
         reason: 'locked_other_job',
-        message: `You've already started "${activeJob.title}". Please finish it before moving on.`,
+        message: `You've already started ${activeJob.title}. Please finish it before moving on.`,
         activeJobTitle: activeJob.title
       };
     }
@@ -755,6 +755,20 @@ class JobsEngine {
     this.render();
   }
 
+  editStepPrompt(jobId, stepId) {
+    const step = this.steps.find(s => s.id === stepId && s.jobId === jobId);
+    if (!step) return;
+    const newText = prompt(`Edit Step ${step.stepNumber} text:`, step.text);
+    if (newText !== null && newText.trim()) {
+      step.text = newText.trim();
+      this.saveSteps();
+      this.render();
+      if (window.appendAiMessage) {
+        window.appendAiMessage(`Updated Step ${step.stepNumber} text: "${step.text}"`, '✏️ Step Modified');
+      }
+    }
+  }
+
   // --- VOICE DIRECTIVE HANDLERS ---
   getCurrentJobVoice() {
     const workerId = this.getCurrentWorkerId();
@@ -794,6 +808,57 @@ class JobsEngine {
     }
 
     return `On "${activeJob.title}", your next step is Step ${nextStep.stepNumber}: "${nextStep.text}".`;
+  }
+
+  readStepVoice(requestedStepStr) {
+    const workerId = this.getCurrentWorkerId();
+    const activeJob = this.getActiveJob(workerId) || this.getUpNextJob(workerId);
+
+    if (!activeJob) {
+      return 'You currently have no assigned jobs to read steps from, sir.';
+    }
+
+    const steps = this.getStepsForJob(activeJob.id);
+    if (steps.length === 0) {
+      return `"${activeJob.title}" has no steps registered.`;
+    }
+
+    let targetStep = null;
+    const req = (requestedStepStr || '').trim().toLowerCase();
+
+    // Word to number mapping
+    const wordToNum = {
+      'one': 1, 'first': 1, '1st': 1,
+      'two': 2, 'second': 2, '2nd': 2,
+      'three': 3, 'third': 3, '3rd': 3,
+      'four': 4, 'fourth': 4, '4th': 4,
+      'five': 5, 'fifth': 5, '5th': 5,
+      'six': 6, 'sixth': 6, '6th': 6,
+      'seven': 7, 'seventh': 7, '7th': 7,
+      'eight': 8, 'eighth': 8, '8th': 8,
+      'nine': 9, 'ninth': 9, '9th': 9,
+      'ten': 10, 'tenth': 10, '10th': 10
+    };
+
+    if (!req || req === 'next' || req === 'current' || req === 'my next step') {
+      targetStep = steps.find(s => !s.completed) || steps[steps.length - 1];
+    } else if (wordToNum[req] !== undefined) {
+      const stepNum = wordToNum[req];
+      targetStep = steps.find(s => s.stepNumber === stepNum);
+    } else {
+      const match = req.match(/\d+/);
+      if (match) {
+        const stepNum = parseInt(match[0], 10);
+        targetStep = steps.find(s => s.stepNumber === stepNum);
+      }
+    }
+
+    if (!targetStep) {
+      return `Step ${requestedStepStr} was not found on "${activeJob.title}". This job has ${steps.length} sequential steps.`;
+    }
+
+    const statusStr = targetStep.completed ? 'Completed' : 'Pending';
+    return `Step ${targetStep.stepNumber} of "${activeJob.title}" reads: "${targetStep.text}". Status is ${statusStr}.`;
   }
 
   completeNextStepVoice() {
@@ -1028,11 +1093,11 @@ class JobsEngine {
         allDoneContainer.innerHTML = `
           <div class="all-done-card">
             <div class="all-done-icon">🎉</div>
-            <h3>All Cleanroom Jobs Completed!</h3>
+            <h3>All jobs done</h3>
             <p>Every assigned task for <strong>${this.escape(currentWorker?.name || 'Operator')}</strong> is complete and verified.</p>
             <div class="all-done-stats">
-              <span class="stat-box"><strong>${completedJobs.length}</strong> Jobs Done</span>
-              <span class="stat-box"><strong>${this.formatCompactDuration(totalDurationSec)}</strong> Total Work Time</span>
+              <span class="stat-box"><strong>${completedJobs.length}</strong> jobs completed</span>
+              <span class="stat-box"><strong>${this.formatCompactDuration(totalDurationSec)}</strong> total time</span>
               <span class="stat-box">Status: <strong>Optimal Nominal</strong></span>
             </div>
           </div>
@@ -1335,6 +1400,7 @@ class JobsEngine {
               <span class="step-num-tag">${s.stepNumber}</span>
               <span class="step-text-val ${s.completed ? 'completed' : ''}">${this.escape(s.text)}</span>
               <div class="step-manager-actions">
+                <button type="button" class="icon-btn mini" onclick="window.jobsEngine.editStepPrompt('${job.id}', '${s.id}')" title="Edit Step Text">✎</button>
                 <button type="button" class="icon-btn mini" onclick="window.jobsEngine.reorderStep('${job.id}', '${s.id}', 'up')" title="Move Step Up">↑</button>
                 <button type="button" class="icon-btn mini" onclick="window.jobsEngine.reorderStep('${job.id}', '${s.id}', 'down')" title="Move Step Down">↓</button>
                 <button type="button" class="icon-btn mini danger" onclick="window.jobsEngine.deleteStepFromJob('${job.id}', '${s.id}')" title="Delete Step">&times;</button>

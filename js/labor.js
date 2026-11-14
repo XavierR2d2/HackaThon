@@ -231,6 +231,9 @@ class LaborEngine {
   saveWorkers(data = this.workers) {
     this.workers = data;
     localStorage.setItem(this.STORAGE_KEY_WORKERS, JSON.stringify(this.workers));
+    if (window.jobsEngine && window.jobsEngine.render) {
+      window.jobsEngine.render();
+    }
   }
 
   saveLogs(data = this.logs) {
@@ -263,6 +266,9 @@ class LaborEngine {
       localStorage.setItem(this.STORAGE_KEY_CURRENT_USER, id);
       const user = this.workers.find(w => w.id === id);
       this.render();
+      if (window.jobsEngine && window.jobsEngine.render) {
+        window.jobsEngine.render();
+      }
 
       const notifyText = `Active operator profile set to ${user.name}. You may now clock in or clock out for your shift.`;
       if (window.appendAiMessage) {

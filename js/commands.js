@@ -146,7 +146,20 @@ class CommandEngine {
       };
     }
 
-    // 6. Mark job complete: "[AI NAME], mark job complete", "complete job", "finish job"
+    // 6. Read Step: "[AI NAME], Read Step [whatever step requested]", "read step 2", "what is step 1"
+    const readStepMatch = lower.match(/(?:read\s+(?:me\s+)?step|what\s+is\s+step)(?:\s+(?:number\s+)?(.+))?/i);
+    if (readStepMatch) {
+      const requestedStep = readStepMatch[1] ? readStepMatch[1].trim() : '';
+      const resp = window.jobsEngine.readStepVoice(requestedStep);
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📖 Step Protocol',
+        actionType: 'jobs'
+      };
+    }
+
+    // 7. Mark job complete: "[AI NAME], mark job complete", "complete job", "finish job"
     if (/(?:mark\s+job\s+complete|complete\s+job|finish\s+job|mark\s+job\s+as\s+complete)/i.test(lower)) {
       const resp = window.jobsEngine.markJobCompleteVoice();
       return {
@@ -157,7 +170,7 @@ class CommandEngine {
       };
     }
 
-    // 7. How many steps are left: "[AI NAME], how many steps are left?"
+    // 8. How many steps are left: "[AI NAME], how many steps are left?"
     if (/(?:how\s+many\s+steps\s+(?:are\s+)?left|steps\s+remaining|how\s+many\s+steps\s+remain)/i.test(lower)) {
       const resp = window.jobsEngine.getStepsLeftVoice();
       return {
