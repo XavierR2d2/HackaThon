@@ -1,72 +1,70 @@
-# VoxAI — Voice-to-Text & AI Command Assistant
+# J.A.R.V.I.S. — Applied Materials Systems Interface
 
-An interactive, responsive HTML5/CSS/JavaScript web application that features:
-- **Dual-Input Modality**: Type with your keyboard or speak with your microphone in real-time.
-- **Continuous & Push-to-Talk Speech Recognition**: Powered by the browser's Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`).
-- **Interactive Action & Command Engine**: Execute live UI actions using your voice or typed text.
-- **Audio Feedback & Waveform Visualizer**: Real-time canvas audio visualizer and synthesized sound effects built with the Web Audio API.
-- **Text-to-Speech (TTS) Voice Responses**: Speaks replies aloud with customizable browser voices, speech rate, and pitch.
-- **Theme Switcher**: 5 futuristic and modern themes (Midnight, Cyberpunk, Emerald Matrix, Sunset, Crisp Light).
-- **Offline Zero-Config Engine + Optional Gemini AI Cloud Bridge**: Works 100% out-of-the-box offline, with an optional field to plug in a Google Gemini API Key for extended generative LLM capabilities.
+An interactive, holographic voice and text AI assistant built for **Applied Materials**, inspired by Tony Stark's **J.A.R.V.I.S.** from *Iron Man*, powered by **Google Gemini AI**.
 
----
-
-## 🚀 Quick Start
-
-### Option 1: Using Python Local Server (Recommended for Microphone Permissions)
-Browsers (Chrome, Edge, Brave) enforce security policies that require Speech Recognition to run on `http://localhost` or `https://` (microphone access can be restricted on raw `file:///` URLs in some browsers).
-
-Run this in your terminal or command prompt:
-```bash
-python -m http.server 3000
-```
-Then open your browser to:
-[http://localhost:3000](http://localhost:3000)
-
-### Option 2: Using Node.js `serve` / `npx`
-```bash
-npx serve .
-```
-
-### Option 3: Double-Click `index.html`
-You can also directly open `index.html` in Chrome or Edge.
+- **Google Gemini AI Integration (`gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-1.5-pro`)**: Endows J.A.R.V.I.S. with real-time generative intelligence to answer any question across science, physics, semiconductor engineering, programming, history, and general knowledge.
+- **British Suave Demeanor & Cadence**: Speaks with Paul Bettany's dry wit, sophisticated decorum, and zero chatbot filler.
+- **Custom Designation (Editable Name)**: Easily re-designate the assistant to **J.A.R.V.I.S.**, **F.R.I.D.A.Y.**, **E.D.I.T.H.**, or any custom name via voice (*"Change your name to Friday"*) or the UI in **System Protocols (⚙️)**.
+- **Dual Modality (Type + Speak)**: Full Web Speech API integration (`SpeechRecognition` & `SpeechSynthesis`).
+- **Applied Materials & Engineering Telemetry**: Cleanroom monitoring, wafer fabrication countdowns, atomic layer deposition knowledge, and precision math.
+- **Stark Arc HUD Interface**: Arc Reactor theme, live sinusoidal waveform canvas, and real-time frequency equalizer.
 
 ---
 
-## 🎙️ Supported Voice Commands & Actions
+## ⚡ Connecting the Google Gemini AI API
 
-You can either **speak** these commands into your microphone or **type** them into the input bar:
+To allow J.A.R.V.I.S. to answer **any question** with Google's large language model:
 
-| Category | Example Voice Commands | What it Does |
+1. **Obtain a Free Gemini API Key**:
+   - Visit [Google AI Studio](https://aistudio.google.com/app/apikey).
+   - Sign in and click **"Create API Key"** (free tier available with generous limits).
+2. **Connect Key in J.A.R.V.I.S.**:
+   - Click the **"⚡ Connect Gemini Key"** pill in the top header (or open **System Protocols ⚙️**).
+   - Paste your API key into the **Gemini API Key** field.
+   - Choose your preferred model architecture:
+     - `gemini-1.5-flash` *(Ultra-Fast, recommended)*
+     - `gemini-2.0-flash` *(Next-Gen Speed)*
+     - `gemini-1.5-pro` *(Deep Multi-step Reasoning)*
+   - Click **Connect & Verify Key**.
+   - The status indicator will turn green: `🟢 Gemini: Online (gemini-1.5-flash)`.
+3. **Ask Any Question**:
+   - You can speak via microphone or type in the prompt box:
+     - *"Explain how gate-all-around nanosheet transistors differ from FinFETs in semiconductor fabrication."*
+     - *"Write a Python script to calculate wafer yield using the Murphy defect model."*
+     - *"What is quantum entanglement and how does it relate to quantum computing?"*
+     - *"Summarize the history of materials science in 3 key breakthroughs."*
+
+---
+
+## 🏷️ Customizing the Assistant's Name
+
+You can change the assistant's name at any time:
+1. **Via Voice Command**:
+   - *"Change your name to F.R.I.D.A.Y."*
+   - *"Call yourself J.A.R.V.I.S."*
+   - *"Rename yourself to [Any Name]"*
+2. **Via UI**:
+   - Open **System Protocols (⚙️)** in the top right.
+   - Enter your preferred call-sign in the **Assistant Call-Sign / Name** field.
+   - Click **Update Designation**.
+
+---
+
+## 🎙️ Sample Commands & Protocols
+
+| Category | Example Directive | J.A.R.V.I.S. Response |
 | :--- | :--- | :--- |
-| ⏱️ **Timers & Alarms** | *"Set a timer for 45 seconds"*, *"Timer 2 minutes"*, *"Cancel timer"* | Starts an interactive visual countdown widget with sound alerts |
-| 🎨 **Theme Switching** | *"Change theme to Cyberpunk"*, *"Switch to Sunset"*, *"Theme Emerald"* | Dynamically switches color schemes and glowing UI aesthetics |
-| 📝 **Notes & Tasks** | *"Take a note: Prepare hackathon pitch"*, *"Add task: Deploy website"* | Saves persistent editable sticky notes in the sidebar |
-| 🧮 **Math & Calculation**| *"Calculate 15% tip on 84 dollars"*, *"What is 45 times 12"*, *"Square root of 144"* | Safely evaluates arithmetic expressions, tips, and percentages |
-| 🌐 **Search & Navigation**| *"Search for Web Speech API"*, *"Open YouTube"*, *"Open GitHub"* | Directly searches Google or navigates to popular developer resources |
-| 🕒 **Time & Date** | *"What time is it?"*, *"What is today's date?"* | Reports exact time and formatted date |
-| 🔊 **Voice Controls** | *"Stop talking"*, *"Mute voice"*, *"Unmute voice"* | Interrupted/silenced speech playback on demand |
-| 🧹 **Chat Management** | *"Clear chat"*, *"Reset conversation"* | Clears the session log |
-| 😂 **Fun & Utilities** | *"Tell me a joke"*, *"Give me a hackathon project idea"*, *"Flip a coin"* | Plays jokes, trivia, and brainstorms ideas |
+| ⚡ **Gemini Question** | *"How does chemical vapor deposition differ from atomic layer deposition?"* | Generates in-depth, structured comparative analysis with J.A.R.V.I.S. decorum |
+| 🏷️ **Name Protocol** | *"Change your name to F.R.I.D.A.Y."* | *"As you wish, sir. Protocol updated. I shall now respond to the designation F.R.I.D.A.Y."* |
+| 🔬 **Telemetry** | *"Status report"* | *"All Applied Materials fabrication chambers, vacuum levels, and cleanroom atmospheric sensors are operating within optimal tolerances, sir."* |
+| ⏱️ **Countdowns** | *"Set timer for 45 seconds for wafer thermal anneal"* | *"Right away, sir. Initiating countdown for 45 seconds. I shall alert you upon completion."* |
+| ⚡ **HUD Theme** | *"Change theme to Stark"* | *"Reconfiguring visual interface to the STARK protocol, sir."* |
+| 📝 **Engineering Log** | *"Take note: Inspect CVD chamber pressure on tool 4"* | *"Logged into Applied Materials engineering records, sir: 'Inspect CVD chamber pressure on tool 4'."* |
+| 🧮 **Precision Math** | *"Calculate 300 millimeter wafer surface area"* | *"A standard 300 millimeter semiconductor wafer has a surface area of approximately 706.86 square centimeters, sir."* |
+| 🔊 **Vocal Control** | *"Stop talking"* or *"Mute voice"* | *"Standing by in silent protocol, sir."* |
 
 ---
 
-## ⌨️ Controls & Shortcuts
+## 🚀 How to Run
 
-- **Click the Mic Button** or **Hold/Press Spacebar** to start speaking.
-- **Enter key**: Submit typed command.
-- **Quick Action Chips**: Click any suggestion chip above the input bar to test instant commands.
-- **Settings Modal (⚙️)**: Choose AI voices, adjust speech speed and pitch, change recognition language (e.g. English, Spanish, French, German, Japanese, Chinese, Hindi), or save a Gemini API Key.
-- **Export (📥)**: Download your entire voice and text session transcript as a clean `.txt` file.
-
----
-
-## 🛠️ Technology Stack
-
-- **HTML5 & CSS3**: Responsive grid & flexbox layout, CSS custom properties, glassmorphism, responsive breakpoints.
-- **Web Speech API**:
-  - `SpeechRecognition` / `webkitSpeechRecognition` for real-time speech-to-text with interim streaming.
-  - `SpeechSynthesis` for AI voice playback.
-- **Web Audio API**: Real-time microphone frequency analyzer and programmatic synthesized alert tones.
-- **HTML5 Canvas**: Smooth dynamic sinusoidal waveform and multi-band audio equalizer.
-- **LocalStorage**: Preserves notes, active theme, and preferences across sessions.
+Double-click `start.bat` in the project root to start the native local server and launch the browser at `http://localhost:3000`.

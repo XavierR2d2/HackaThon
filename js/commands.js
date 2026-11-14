@@ -1,6 +1,6 @@
 /**
- * VoxAI - Command Parser & Execution Engine
- * Detects and executes actionable intents from user voice or text input.
+ * J.A.R.V.I.S. - Command Parser & Execution Engine
+ * Tailored for Applied Materials. Speaks with the sophisticated British cadence and wit of J.A.R.V.I.S.
  */
 
 class CommandEngine {
@@ -8,6 +8,10 @@ class CommandEngine {
     this.timers = [];
     this.timerIdCounter = 1;
     this.notes = JSON.parse(localStorage.getItem('voxai_notes') || '[]');
+  }
+
+  getName() {
+    return window.getAssistantName ? window.getAssistantName() : (localStorage.getItem('amat_assistant_name') || 'J.A.R.V.I.S.');
   }
 
   /**
@@ -19,39 +23,109 @@ class CommandEngine {
     const input = rawInput.trim();
     const lower = input.toLowerCase();
 
-    // 1. Timer / Countdown Commands
+    // 0. Name Change & Identity Protocols
+    const nameResult = this.handleNameCommand(lower, input);
+    if (nameResult) return nameResult;
+
+    // 1. Applied Materials Telemetry & Status
+    const amatResult = this.handleAppliedMaterialsCommand(lower);
+    if (amatResult) return amatResult;
+
+    // 2. Timer / Countdown Commands
     const timerResult = this.handleTimerCommand(lower, input);
     if (timerResult) return timerResult;
 
-    // 2. Theme Switching Commands
+    // 3. Theme Switching Commands
     const themeResult = this.handleThemeCommand(lower);
     if (themeResult) return themeResult;
 
-    // 3. Notes & Tasks Commands
+    // 4. Notes & Tasks Commands
     const noteResult = this.handleNotesCommand(lower, input);
     if (noteResult) return noteResult;
 
-    // 4. Math / Calculation Commands
+    // 5. Math / Calculation Commands
     const mathResult = this.handleMathCommand(lower);
     if (mathResult) return mathResult;
 
-    // 5. Time and Date Commands
+    // 6. Time and Date Commands
     const timeResult = this.handleTimeCommand(lower);
     if (timeResult) return timeResult;
 
-    // 6. Navigation / Search Commands
+    // 7. Navigation / Search Commands
     const navResult = this.handleNavCommand(lower);
     if (navResult) return navResult;
 
-    // 7. Voice & System Controls
+    // 8. Voice & System Controls
     const sysResult = this.handleSystemCommand(lower);
     if (sysResult) return sysResult;
 
-    // 8. Fun & Assistant Utilities
+    // 9. Fun & Assistant Utilities
     const funResult = this.handleFunCommand(lower);
     if (funResult) return funResult;
 
-    return null; // Not an explicit hard-coded action command; pass to conversational AI engine
+    return null; // Delegate to conversational AI engine
+  }
+
+  /* ----------------------------------------------------
+     NAME CHANGE & IDENTITY COMMANDS
+     ---------------------------------------------------- */
+  handleNameCommand(lower, original) {
+    // "change your name to Friday" / "call yourself Jarvis" / "rename yourself to Edith"
+    const renamePattern = /(?:change\s+(?:your\s+)?name\s+to|call\s+yourself|rename\s+(?:yourself\s+)?to|your\s+name\s+is\s+now|set\s+(?:your\s+)?name\s+to)\s+([a-zA-Z0-9\.\-\_\s]+)/i;
+    const match = original.match(renamePattern);
+
+    if (match && match[1]) {
+      const newName = match[1].trim();
+      if (newName.length > 0) {
+        if (window.setAssistantName) {
+          window.setAssistantName(newName);
+        }
+        return {
+          handled: true,
+          responseText: `As you wish, sir. Protocol updated. I shall now respond to the designation ${newName}.`,
+          actionTag: `🏷️ Designation: ${newName}`,
+          actionType: 'system'
+        };
+      }
+    }
+
+    // "what is your name" / "who are you"
+    if (/(what\s+is\s+your\s+name|who\s+are\s+you|identify\s+yourself)/i.test(lower)) {
+      const currentName = this.getName();
+      return {
+        handled: true,
+        responseText: `I am ${currentName}, the artificial intelligence interface for Applied Materials. At your service, sir.`,
+        actionTag: `🤖 System: ${currentName}`,
+        actionType: 'system'
+      };
+    }
+
+    return null;
+  }
+
+  /* ----------------------------------------------------
+     APPLIED MATERIALS SPECIFIC TELEMETRY COMMANDS
+     ---------------------------------------------------- */
+  handleAppliedMaterialsCommand(lower) {
+    if (/(status\s+report|telemetry\s+report|systems\s+status|cleanroom\s+status|diagnostics)/i.test(lower)) {
+      return {
+        handled: true,
+        responseText: `All Applied Materials fabrication chambers, vacuum levels, and cleanroom atmospheric sensors are operating within optimal tolerances, sir. Uptime is at 99.99%.`,
+        actionTag: `📊 Telemetry: Nominal`,
+        actionType: 'amat'
+      };
+    }
+
+    if (/(what\s+is\s+applied\s+materials|about\s+applied\s+materials|tell\s+me\s+about\s+applied\s+materials)/i.test(lower)) {
+      return {
+        handled: true,
+        responseText: `Applied Materials is the global leader in materials engineering solutions used to produce virtually every new semiconductor chip and advanced display in the world. Our tools specialize in atomic layer deposition, chemical vapor deposition, etch, and planarization.`,
+        actionTag: `🔬 Applied Materials Profile`,
+        actionType: 'amat'
+      };
+    }
+
+    return null;
   }
 
   /* ----------------------------------------------------
@@ -64,8 +138,8 @@ class CommandEngine {
       this.clearAllTimers();
       return {
         handled: true,
-        responseText: count > 0 ? `Cleared ${count} active timer(s).` : `There are no active timers to cancel.`,
-        actionTag: '⏱️ Timer Cancelled',
+        responseText: count > 0 ? `Cleared all active countdown protocols, sir. Total timers purged: ${count}.` : `There are no active countdown protocols running at this time, sir.`,
+        actionTag: '⏱️ Timer Purged',
         actionType: 'timer'
       };
     }
@@ -78,39 +152,27 @@ class CommandEngine {
       const phrase = match[1];
       let totalSeconds = 0;
 
-      // Check for minutes
       const minMatch = phrase.match(/(\d+)\s*(?:m|min|minute|minutes)/i);
-      if (minMatch) {
-        totalSeconds += parseInt(minMatch[1], 10) * 60;
-      }
+      if (minMatch) totalSeconds += parseInt(minMatch[1], 10) * 60;
 
-      // Check for seconds
       const secMatch = phrase.match(/(\d+)\s*(?:s|sec|second|seconds)/i);
-      if (secMatch) {
-        totalSeconds += parseInt(secMatch[1], 10);
-      }
+      if (secMatch) totalSeconds += parseInt(secMatch[1], 10);
 
-      // Check for hours
       const hrMatch = phrase.match(/(\d+)\s*(?:h|hr|hour|hours)/i);
-      if (hrMatch) {
-        totalSeconds += parseInt(hrMatch[1], 10) * 3600;
-      }
+      if (hrMatch) totalSeconds += parseInt(hrMatch[1], 10) * 3600;
 
-      // If user just said "timer 30"
       if (totalSeconds === 0) {
         const justNum = phrase.match(/^(\d+)$/);
-        if (justNum) {
-          totalSeconds = parseInt(justNum[1], 10);
-        }
+        if (justNum) totalSeconds += parseInt(justNum[1], 10);
       }
 
       if (totalSeconds > 0) {
-        const label = `Timer for ${this.formatDuration(totalSeconds)}`;
+        const label = `Fabrication Countdown (${this.formatDuration(totalSeconds)})`;
         this.addTimer(totalSeconds, label);
         return {
           handled: true,
-          responseText: `Starting a timer for ${this.formatDuration(totalSeconds)}. I will alert you when it rings!`,
-          actionTag: `⏱️ Timer: ${this.formatDuration(totalSeconds)}`,
+          responseText: `Right away, sir. Initiating countdown for ${this.formatDuration(totalSeconds)}. I shall alert you upon completion.`,
+          actionTag: `⏱️ Countdown: ${this.formatDuration(totalSeconds)}`,
           actionType: 'timer'
         };
       }
@@ -136,7 +198,7 @@ class CommandEngine {
         timerObj.status = 'finished';
         timerObj.remaining = 0;
         window.speechEngine.playChime('alarm');
-        window.speechEngine.speak(`Attention: Your ${label} has finished!`);
+        window.speechEngine.speak(`Sir, your countdown for ${label} has completed.`);
         if (window.renderTimersList) window.renderTimersList();
       } else {
         if (window.updateTimerDisplay) window.updateTimerDisplay(timerObj.id, timerObj.remaining, timerObj.totalSeconds);
@@ -181,22 +243,24 @@ class CommandEngine {
      THEME COMMANDS
      ---------------------------------------------------- */
   handleThemeCommand(lower) {
-    const themePattern = /(?:change|switch|set)\s+(?:the\s+)?theme(?:\s+to)?\s+([a-zA-Z\s]+)|theme\s+([a-zA-Z]+)/i;
+    const themePattern = /(?:change|switch|set)\s+(?:the\s+)?(?:theme|visuals|hud|interface)(?:\s+to)?\s+([a-zA-Z\s]+)|theme\s+([a-zA-Z]+)/i;
     const match = lower.match(themePattern);
 
     if (match) {
       const requested = (match[1] || match[2] || '').trim().toLowerCase();
       let targetTheme = null;
 
-      if (requested.includes('cyber') || requested.includes('neon') || requested.includes('matrix')) {
+      if (requested.includes('stark') || requested.includes('arc') || requested.includes('reactor') || requested.includes('iron man') || requested.includes('tony')) {
+        targetTheme = 'stark';
+      } else if (requested.includes('cyber') || requested.includes('neon')) {
         targetTheme = 'cyberpunk';
-      } else if (requested.includes('emerald') || requested.includes('green')) {
+      } else if (requested.includes('emerald') || requested.includes('matrix') || requested.includes('green')) {
         targetTheme = 'emerald';
-      } else if (requested.includes('sunset') || requested.includes('orange') || requested.includes('amber')) {
+      } else if (requested.includes('sunset') || requested.includes('amber')) {
         targetTheme = 'sunset';
-      } else if (requested.includes('light') || requested.includes('white') || requested.includes('day')) {
+      } else if (requested.includes('light') || requested.includes('cleanroom') || requested.includes('white')) {
         targetTheme = 'light';
-      } else if (requested.includes('midnight') || requested.includes('dark') || requested.includes('night') || requested.includes('default')) {
+      } else if (requested.includes('midnight') || requested.includes('dark') || requested.includes('stealth')) {
         targetTheme = 'midnight';
       }
 
@@ -208,8 +272,8 @@ class CommandEngine {
 
         return {
           handled: true,
-          responseText: `Applied the ${targetTheme.toUpperCase()} theme for you.`,
-          actionTag: `🎨 Theme: ${targetTheme}`,
+          responseText: `Reconfiguring visual interface to the ${targetTheme.toUpperCase()} protocol, sir.`,
+          actionTag: `⚡ Protocol: ${targetTheme.toUpperCase()}`,
           actionType: 'theme'
         };
       }
@@ -221,22 +285,20 @@ class CommandEngine {
      NOTES & TASKS COMMANDS
      ---------------------------------------------------- */
   handleNotesCommand(lower, original) {
-    // "clear notes"
-    if (/(clear|delete|remove)\s+(all\s+)?(?:notes|tasks)/i.test(lower)) {
+    if (/(clear|delete|purge)\s+(all\s+)?(?:notes|tasks|logs)/i.test(lower)) {
       const count = this.notes.length;
       this.notes = [];
       localStorage.setItem('voxai_notes', JSON.stringify(this.notes));
       if (window.renderNotesList) window.renderNotesList();
       return {
         handled: true,
-        responseText: `Cleared all ${count} voice notes.`,
-        actionTag: '📝 Notes Cleared',
+        responseText: `Purged all ${count} entries from the engineering registry, sir.`,
+        actionTag: '📝 Log Purged',
         actionType: 'note'
       };
     }
 
-    // "take a note: buy groceries" / "add note finish presentation" / "add task buy coffee"
-    const notePattern = /(?:take\s+a\s+note|note|add\s+note|take\s+note|add\s+task|remember|write\s+down)[:\s]+(.+)/i;
+    const notePattern = /(?:take\s+a\s+note|note|add\s+note|take\s+note|add\s+task|remember|log)[:\s]+(.+)/i;
     const match = original.match(notePattern);
 
     if (match && match[1]) {
@@ -253,8 +315,8 @@ class CommandEngine {
 
         return {
           handled: true,
-          responseText: `Saved note: "${content}" to your task board.`,
-          actionTag: '📝 Note Saved',
+          responseText: `Logged into Applied Materials engineering records, sir: "${content}".`,
+          actionTag: '📝 Logged to Registry',
           actionType: 'note'
         };
       }
@@ -273,9 +335,20 @@ class CommandEngine {
      MATH & CALCULATION COMMANDS
      ---------------------------------------------------- */
   handleMathCommand(lower) {
-    // Check if starts with calculate or math questions
-    const isCalc = /(?:calculate|what\s+is|what's|how\s+much\s+is|compute|solve)\s+(.+)/i.test(lower);
+    const isCalc = /(?:calculate|what\s+is|what's|compute|solve|area\s+of)\s+(.+)/i.test(lower);
     if (!isCalc) return null;
+
+    // Special: 300mm wafer area
+    if (/300\s*(?:mm|millimeter)\s*wafer/i.test(lower)) {
+      // Radius = 15 cm. Area = pi * 15^2 = ~706.86 cm^2
+      const area = Math.PI * 15 * 15;
+      return {
+        handled: true,
+        responseText: `A standard 300 millimeter semiconductor wafer has a surface area of approximately ${area.toFixed(2)} square centimeters, or roughly 70,686 square millimeters, sir.`,
+        actionTag: `🧮 300mm Wafer: ~706.86 cm²`,
+        actionType: 'math'
+      };
+    }
 
     const query = lower.replace(/(?:calculate|what\s+is|what's|how\s+much\s+is|compute|solve)/i, '').trim();
 
@@ -289,7 +362,7 @@ class CommandEngine {
       const total = base + tipAmount;
       return {
         handled: true,
-        responseText: `A ${pct}% tip on $${base.toFixed(2)} is $${tipAmount.toFixed(2)}, making the total $${total.toFixed(2)}.`,
+        responseText: `A ${pct}% tip on $${base.toFixed(2)} is $${tipAmount.toFixed(2)}, bringing the total to $${total.toFixed(2)}, sir.`,
         actionTag: `🧮 Tip: $${tipAmount.toFixed(2)} (Total: $${total.toFixed(2)})`,
         actionType: 'math'
       };
@@ -303,7 +376,7 @@ class CommandEngine {
       const result = (pct / 100) * val;
       return {
         handled: true,
-        responseText: `${pct}% of ${val} is ${result}.`,
+        responseText: `${pct}% of ${val} is ${result}, sir.`,
         actionTag: `🧮 ${pct}% of ${val} = ${result}`,
         actionType: 'math'
       };
@@ -316,13 +389,13 @@ class CommandEngine {
       const result = Math.sqrt(val);
       return {
         handled: true,
-        responseText: `The square root of ${val} is ${result}.`,
+        responseText: `The square root of ${val} is precisely ${result}, sir.`,
         actionTag: `🧮 √${val} = ${result}`,
         actionType: 'math'
       };
     }
 
-    // Basic arithmetic expression: replace "times", "multiplied by", "divided by", "plus", "minus", "to the power of"
+    // Basic arithmetic expression
     let cleanExpr = query
       .replace(/times|multiplied\s+by|x/gi, '*')
       .replace(/divided\s+by|over/gi, '/')
@@ -330,23 +403,21 @@ class CommandEngine {
       .replace(/minus|subtract/gi, '-')
       .replace(/to\s+the\s+power\s+of|\^/gi, '**');
 
-    // Only allow safe math characters: digits, ., +, -, *, /, (, ), spaces
     if (/^[0-9\.\+\-\*\/\(\)\s\*\*\^]+$/.test(cleanExpr) && /[0-9]/.test(cleanExpr)) {
       try {
-        // Safe evaluation function using Function constructor restricted to math
         const safeEval = new Function(`'use strict'; return (${cleanExpr})`);
         const result = safeEval();
         if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
           const rounded = Math.round(result * 100000) / 100000;
           return {
             handled: true,
-            responseText: `The calculation result is ${rounded}.`,
+            responseText: `Computing now, sir. The result is ${rounded}.`,
             actionTag: `🧮 ${cleanExpr} = ${rounded}`,
             actionType: 'math'
           };
         }
       } catch (e) {
-        // Not a pure arithmetic expression, continue to AI
+        // Continue to AI
       }
     }
 
@@ -362,8 +433,8 @@ class CommandEngine {
       const timeStr = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
       return {
         handled: true,
-        responseText: `The current time is ${timeStr}.`,
-        actionTag: `🕒 Time: ${timeStr}`,
+        responseText: `It is currently ${timeStr}, sir.`,
+        actionTag: `🕒 Chrono: ${timeStr}`,
         actionType: 'time'
       };
     }
@@ -373,7 +444,7 @@ class CommandEngine {
       const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       return {
         handled: true,
-        responseText: `Today is ${dateStr}.`,
+        responseText: `Today is ${dateStr}, sir.`,
         actionTag: `📅 Date: ${dateStr}`,
         actionType: 'time'
       };
@@ -386,10 +457,9 @@ class CommandEngine {
      NAVIGATION & WEB SEARCH COMMANDS
      ---------------------------------------------------- */
   handleNavCommand(lower) {
-    // "open youtube" / "open google" / "open github" / "open wikipedia"
-    const openMatch = lower.match(/(?:open|go\s+to|launch)\s+(youtube|google|github|wikipedia|reddit|twitter|x)/i);
+    const openMatch = lower.match(/(?:open|go\s+to|launch)\s+(youtube|google|github|wikipedia|reddit|twitter|x|applied\s+materials)/i);
     if (openMatch) {
-      const site = openMatch[1].toLowerCase();
+      const site = openMatch[1].toLowerCase().replace(/\s+/g, '');
       const urls = {
         youtube: 'https://www.youtube.com',
         google: 'https://www.google.com',
@@ -397,21 +467,21 @@ class CommandEngine {
         wikipedia: 'https://www.wikipedia.org',
         reddit: 'https://www.reddit.com',
         twitter: 'https://twitter.com',
-        x: 'https://x.com'
+        x: 'https://x.com',
+        appliedmaterials: 'https://www.appliedmaterials.com'
       };
       const url = urls[site];
       if (url) {
         window.open(url, '_blank');
         return {
           handled: true,
-          responseText: `Opening ${site.toUpperCase()} in a new tab for you.`,
-          actionTag: `🌐 Navigating: ${site.toUpperCase()}`,
+          responseText: `Opening ${openMatch[1].toUpperCase()} for you now, sir.`,
+          actionTag: `🌐 Navigating: ${openMatch[1].toUpperCase()}`,
           actionType: 'nav'
         };
       }
     }
 
-    // "search for [topic]" / "google [topic]"
     const searchMatch = lower.match(/(?:search\s+for|search|google|look\s+up)\s+(.+)/i);
     if (searchMatch) {
       const query = searchMatch[1].trim();
@@ -419,7 +489,7 @@ class CommandEngine {
       window.open(searchUrl, '_blank');
       return {
         handled: true,
-        responseText: `Searching Google for "${query}". Opening search results in a new tab.`,
+        responseText: `Running search telemetry for "${query}", sir. Displaying results in a separate tab.`,
         actionTag: `🔍 Search: "${query}"`,
         actionType: 'search'
       };
@@ -432,58 +502,54 @@ class CommandEngine {
      SYSTEM & VOICE SETTINGS COMMANDS
      ---------------------------------------------------- */
   handleSystemCommand(lower) {
-    // "stop talking" / "shut up" / "be quiet" / "stop speaking"
     if (/(stop\s+talking|stop\s+speaking|be\s+quiet|shut\s+up|silence|pause\s+voice)/i.test(lower)) {
       window.speechEngine.stopSpeaking();
       return {
         handled: true,
-        responseText: `Understood, silenced audio output.`,
+        responseText: `Standing by in silent protocol, sir.`,
         actionTag: '🔇 Audio Silenced',
         actionType: 'system'
       };
     }
 
-    // "mute voice" / "turn off voice"
     if (/(mute\s+voice|turn\s+off\s+voice|disable\s+voice|mute\s+audio)/i.test(lower)) {
       window.speechEngine.ttsEnabled = false;
       const ttsBtn = document.getElementById('ttsToggleBtn');
       if (ttsBtn) {
         ttsBtn.classList.remove('active');
-        ttsBtn.querySelector('.btn-label').textContent = 'Voice: OFF';
+        ttsBtn.querySelector('.btn-label').textContent = 'Vocal: OFF';
       }
       return {
         handled: true,
-        responseText: `Voice output has been muted. I will now respond in text only.`,
-        actionTag: '🔇 Voice Muted',
+        responseText: `Vocal synthesis module disabled, sir. Proceeding with visual telemetry only.`,
+        actionTag: '🔇 Vocal Muted',
         actionType: 'system'
       };
     }
 
-    // "unmute voice" / "turn on voice"
     if (/(unmute\s+voice|turn\s+on\s+voice|enable\s+voice|enable\s+audio)/i.test(lower)) {
       window.speechEngine.ttsEnabled = true;
       const ttsBtn = document.getElementById('ttsToggleBtn');
       if (ttsBtn) {
         ttsBtn.classList.add('active');
-        ttsBtn.querySelector('.btn-label').textContent = 'Voice: ON';
+        ttsBtn.querySelector('.btn-label').textContent = 'Vocal: ON';
       }
       return {
         handled: true,
-        responseText: `Voice output is now enabled. I will speak responses aloud.`,
-        actionTag: '🔊 Voice Enabled',
+        responseText: `Vocal synthesis module restored, sir.`,
+        actionTag: '🔊 Vocal Enabled',
         actionType: 'system'
       };
     }
 
-    // "clear chat" / "clear screen" / "reset conversation"
-    if (/(clear\s+chat|clear\s+screen|reset\s+chat|clear\s+transcript|new\s+conversation)/i.test(lower)) {
+    if (/(clear\s+chat|clear\s+screen|reset\s+chat|clear\s+transcript|purge\s+log)/i.test(lower)) {
       if (window.clearSessionChat) {
         window.clearSessionChat();
       }
       return {
         handled: true,
-        responseText: `Chat history and transcript have been cleared.`,
-        actionTag: '🧹 Chat Cleared',
+        responseText: `Session transcript purged, sir. Registers cleared.`,
+        actionTag: '🧹 Log Purged',
         actionType: 'system'
       };
     }
@@ -495,95 +561,70 @@ class CommandEngine {
      FUN & ASSISTANT COMMANDS
      ---------------------------------------------------- */
   handleFunCommand(lower) {
-    // "tell me a joke"
     if (/(tell\s+me\s+a\s+joke|make\s+me\s+laugh|say\s+something\s+funny)/i.test(lower)) {
       const jokes = [
-        "Why do programmers prefer dark mode? Because light attracts bugs!",
-        "Why did the JavaScript developer wear glasses? Because they didn't C#!",
-        "There are 10 types of people in the world: those who understand binary, and those who don't.",
-        "A SQL query walks into a bar, walks up to two tables and asks: 'Can I join you?'",
-        "Why do Java programmers wear glasses? Because they don't see sharp!",
-        "An optimist sees the glass half full. A pessimist sees it half empty. An engineer sees the glass as twice as big as it needs to be."
+        "A photon checks into a hotel and is asked if it has any luggage. It replies: 'No, I'm traveling light.'",
+        "Why did the semiconductor go to school? To improve its micro-architecture.",
+        "There are 10 types of people in the world, sir: those who understand binary, and those who do not.",
+        "Why do programmers prefer dark mode? Because light attracts bugs, and our cleanrooms cannot tolerate contaminants.",
+        "A quantum physicist walks into a bar... or did they?"
       ];
       const joke = jokes[Math.floor(Math.random() * jokes.length)];
       return {
         handled: true,
-        responseText: joke,
-        actionTag: '😂 Joke of the Day',
+        responseText: `A brief diversion from materials engineering, sir: ${joke}`,
+        actionTag: '😂 Diversion',
         actionType: 'fun'
       };
     }
 
-    // "tell me a fun fact"
     if (/(tell\s+me\s+a\s+(?:fun\s+)?fact|give\s+me\s+a\s+fact|interesting\s+fact)/i.test(lower)) {
       const facts = [
-        "The first computer mouse was invented in 1964 by Doug Engelbart and was made of wood!",
-        "The Apollo 11 lunar module guidance computer had just 4 kilobytes of RAM.",
-        "Honey never spoils. Archaeologists have found pots of honey in ancient Egyptian tombs over 3,000 years old that are still edible!",
-        "Octopuses have three hearts, nine brains, and blue blood.",
-        "The first computer bug was an actual real moth stuck inside the Harvard Mark II computer in 1947."
+        "Modern advanced semiconductor chips manufactured with Applied Materials equipment contain over 50 billion transistors, with gate oxide layers as thin as a single nanometer.",
+        "Applied Materials cleanrooms are thousands of times cleaner than an operating room, filtering out particles down to tens of nanometers in size.",
+        "Silicon dioxide thin films are deposited using atomic layer deposition, laying down atoms one individual atomic monolayer at a time.",
+        "The Apollo 11 navigation computer operated at 1 MHz with 4 KB of RAM. A single modern wafer fabricated today contains trillions of times more computational throughput."
       ];
       const fact = facts[Math.floor(Math.random() * facts.length)];
       return {
         handled: true,
-        responseText: fact,
-        actionTag: '💡 Fun Fact',
+        responseText: `An interesting scientific datum, sir: ${fact}`,
+        actionTag: '💡 Scientific Datum',
         actionType: 'fun'
       };
     }
 
-    // "give me an inspirational quote"
     if (/(inspirational\s+quote|quote\s+of\s+the\s+day|inspire\s+me|motivate\s+me)/i.test(lower)) {
       const quotes = [
-        `"The only way to do great work is to love what you do." — Steve Jobs`,
-        `"It always seems impossible until it's done." — Nelson Mandela`,
-        `"Code is like humor. When you have to explain it, it’s bad." — Cory House`,
-        `"Simplicity is prerequisite for reliability." — Edsger W. Dijkstra`,
-        `"The best way to predict the future is to invent it." — Alan Kay`
+        `"Sometimes you have to run before you can walk." — Tony Stark`,
+        `"The best way to predict the future is to invent it." — Alan Kay`,
+        `"Simplicity is the prerequisite for reliability." — Edsger W. Dijkstra`,
+        `"Engineering is the closest thing to magic that exists in the world." — Elon Musk`
       ];
       const quote = quotes[Math.floor(Math.random() * quotes.length)];
       return {
         handled: true,
-        responseText: quote,
-        actionTag: '✨ Inspiration',
+        responseText: `A pertinent reflection, sir: ${quote}`,
+        actionTag: '✨ Reflection',
         actionType: 'fun'
       };
     }
 
-    // "give me a hackathon project idea"
-    if (/(hackathon\s+(?:project\s+)?idea|project\s+idea|give\s+me\s+an\s+idea)/i.test(lower)) {
-      const ideas = [
-        "An AI Meeting Summarizer that generates actionable Jira cards and notes from microphone audio in real time.",
-        "An accessible hands-free Voice Navigation browser extension for motor-impaired developers.",
-        "An AI Audio Co-pilot that listens to pair programming conversations and pulls up relevant docs and code snippets.",
-        "A smart interactive ambient soundscape that adapts tempo and frequencies to your heart rate and typing cadence."
-      ];
-      const idea = ideas[Math.floor(Math.random() * ideas.length)];
-      return {
-        handled: true,
-        responseText: idea,
-        actionTag: '🚀 Hackathon Idea',
-        actionType: 'fun'
-      };
-    }
-
-    // "flip a coin"
     if (/(flip\s+a\s+coin|heads\s+or\s+tails)/i.test(lower)) {
       const outcome = Math.random() < 0.5 ? 'Heads' : 'Tails';
       return {
         handled: true,
-        responseText: `I flipped a coin and it landed on: ${outcome}!`,
+        responseText: `Coin tossed, sir. Aerodynamic analysis resolves to: ${outcome}.`,
         actionTag: `🪙 Coin Toss: ${outcome}`,
         actionType: 'fun'
       };
     }
 
-    // "roll a die"
     if (/(roll\s+a\s+die|roll\s+dice)/i.test(lower)) {
       const roll = Math.floor(Math.random() * 6) + 1;
       return {
         handled: true,
-        responseText: `You rolled a ${roll}! 🎲`,
+        responseText: `Die roll executed, sir. The result is ${roll}.`,
         actionTag: `🎲 Rolled: ${roll}`,
         actionType: 'fun'
       };

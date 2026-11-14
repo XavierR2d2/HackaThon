@@ -119,10 +119,14 @@ class SpeechEngine {
 
     const loadVoices = () => {
       this.availableVoices = window.speechSynthesis.getVoices();
-      // Prefer standard English natural voice
+      // Prioritize British English (en-GB) voices for J.A.R.V.I.S. (Paul Bettany tone)
       this.selectedVoice = this.availableVoices.find(v => 
-        (v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Guy')))
-      ) || this.availableVoices.find(v => v.lang.startsWith('en')) || this.availableVoices[0];
+        (v.lang === 'en-GB' || v.lang.startsWith('en-GB')) && 
+        (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur') || v.name.includes('Daniel') || v.name.includes('Ryan') || v.name.includes('Google UK English Male'))
+      ) || this.availableVoices.find(v => v.lang === 'en-GB' || v.lang.startsWith('en-GB'))
+        || this.availableVoices.find(v => v.name.includes('Natural') || v.name.includes('Guy'))
+        || this.availableVoices.find(v => v.lang.startsWith('en'))
+        || this.availableVoices[0];
     };
 
     loadVoices();
