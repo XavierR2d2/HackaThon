@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const continuousMicCheck = document.getElementById('continuousMicCheck');
   const soundEffectsCheck = document.getElementById('soundEffectsCheck');
 
-  // Sidebar widget elements
+  // Sidebar widget elements (guarded for decommissioned widgets)
   const timersList = document.getElementById('timersList');
   const timerCount = document.getElementById('timerCount');
   const notesList = document.getElementById('notesList');
@@ -745,48 +745,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* --------------------------------------------------------------------------
-     9. COUNTDOWNS & ENGINEERING LOGS RENDERERS
+     9. DECOMMISSIONED TIMERS & NOTES HANDLERS (CLEANUP / FALLBACKS)
      -------------------------------------------------------------------------- */
   window.renderTimersList = () => {
-    const timers = window.commandEngine.timers;
+    if (!timersList || !timerCount) return;
+    const timers = window.commandEngine ? window.commandEngine.timers : [];
     timerCount.textContent = timers.length;
-
-    if (timers.length === 0) {
-      timersList.innerHTML = `
-        <div class="empty-state" id="emptyTimers">
-          <p>No active countdowns, sir.</p>
-          <small>Try: <em>"Set timer for 45 seconds"</em></small>
-        </div>
-      `;
-      return;
-    }
-
-    timersList.innerHTML = '';
-    timers.forEach(t => {
-      const item = document.createElement('div');
-      item.className = `timer-item ${t.status === 'finished' ? 'ringing' : ''}`;
-      item.id = `timer-item-${t.id}`;
-
-      const pct = t.totalSeconds > 0 ? (t.remaining / t.totalSeconds) * 100 : 0;
-      const mm = String(Math.floor(t.remaining / 60)).padStart(2, '0');
-      const ss = String(t.remaining % 60).padStart(2, '0');
-
-      item.innerHTML = `
-        <div class="timer-header">
-          <span class="timer-label">${escapeHtml(t.label)}</span>
-          <span class="timer-digits" id="timer-digits-${t.id}">${t.status === 'finished' ? '⏰ EXPIRED (ALARM)' : `${mm}:${ss}`}</span>
-        </div>
-        <div class="timer-progress">
-          <div class="timer-bar" id="timer-bar-${t.id}" style="width: ${pct}%"></div>
-        </div>
-        <div class="timer-controls">
-          <button class="mini-icon-btn ${t.status === 'finished' ? 'ringing-ack-btn' : ''}" onclick="window.commandEngine.removeTimer(${t.id})">
-            ${t.status === 'finished' ? '🔔 ACKNOWLEDGE ALARM' : 'Cancel'}
-          </button>
-        </div>
-      `;
-      timersList.appendChild(item);
-    });
   };
 
   window.updateTimerDisplay = (id, remaining, total) => {
@@ -801,47 +765,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  addQuickTimerBtn.addEventListener('click', () => {
-    window.commandEngine.addTimer(60, '1 Minute Rapid Anneal');
-  });
-
-  // Notes widget renderer
-  window.renderNotesList = () => {
-    const notes = window.commandEngine.notes;
-    notesCount.textContent = notes.length;
-
-    if (notes.length === 0) {
-      notesList.innerHTML = `
-        <div class="empty-state" id="emptyNotes">
-          <p>Log is clear, sir.</p>
-          <small>Try: <em>"Take note: Calibration complete"</em></small>
-        </div>
-      `;
-      return;
-    }
-
-    notesList.innerHTML = '';
-    notes.forEach(note => {
-      const item = document.createElement('div');
-      item.className = 'note-item';
-      item.innerHTML = `
-        <div class="note-text">
-          <div>${escapeHtml(note.text)}</div>
-          <small style="color: var(--text-dim); font-size: 0.68rem;">${note.time}</small>
-        </div>
-        <button class="note-delete-btn" title="Purge entry" onclick="window.commandEngine.deleteNote(${note.id})">&times;</button>
-      `;
-      notesList.appendChild(item);
+  if (addQuickTimerBtn) {
+    addQuickTimerBtn.addEventListener('click', () => {
+      if (window.commandEngine) window.commandEngine.addTimer(60, '1 Minute Rapid Anneal');
     });
+  }
+
+  // Notes widget renderer (guarded)
+  window.renderNotesList = () => {
+    if (!notesList || !notesCount) return;
+    const notes = window.commandEngine ? window.commandEngine.notes : [];
+    notesCount.textContent = notes.length;
   };
 
-  clearNotesBtn.addEventListener('click', () => {
-    if (confirm('Purge all engineering notes, sir?')) {
-      window.commandEngine.notes = [];
-      localStorage.setItem('voxai_notes', '[]');
-      window.renderNotesList();
-    }
-  });
+  if (clearNotesBtn) {
+    clearNotesBtn.addEventListener('click', () => {
+      if (confirm('Purge all engineering notes, sir?')) {
+        if (window.commandEngine) window.commandEngine.notes = [];
+        localStorage.setItem('voxai_notes', '[]');
+        window.renderNotesList();
+      }
+    });
+  }
 
   // Initial renders
   window.renderTimersList();

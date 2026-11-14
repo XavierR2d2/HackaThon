@@ -1,7 +1,8 @@
 /**
  * Applied Materials AI - Cleanroom Labor & Workforce Management Engine
  * Manages persistent worker records (clock in / clock out), live shift duration tracking,
- * and persistent count-up Labor Clock with exact plain-English duration readbacks.
+ * active user / self-only clock out security enforcement, new hire database persistence,
+ * daily shift rollover ("next day" status reset), and persistent count-up Labor Clock.
  */
 
 class LaborEngine {
@@ -9,6 +10,8 @@ class LaborEngine {
     this.STORAGE_KEY_WORKERS = 'amat_labor_workers';
     this.STORAGE_KEY_CLOCK = 'amat_labor_clock_start';
     this.STORAGE_KEY_LOGS = 'amat_labor_logs';
+    this.STORAGE_KEY_CURRENT_USER = 'amat_labor_current_user';
+    this.STORAGE_KEY_LAST_DATE = 'amat_labor_shift_date';
 
     this.workers = [];
     this.clockStartTime = null;
@@ -22,9 +25,30 @@ class LaborEngine {
   }
 
   initData() {
+    this.checkDayRolloverInitial();
     this.workers = this.loadWorkers();
     this.clockStartTime = this.loadClockStartTime();
     this.logs = this.loadLogs();
+    this.ensureValidCurrentUser();
+  }
+
+  getTodayString() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  getCurrentShiftDate() {
+    return localStorage.getItem(this.STORAGE_KEY_LAST_DATE) || this.getTodayString();
+  }
+
+  formatDateDisplay(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    return dateStr;
   }
 
   getAssistantName() {
@@ -51,7 +75,79 @@ class LaborEngine {
     }
   }
 
-  loadWorkers() {
+  // --- DAY ROLLOVER & DATABASE RETENTION ENGINE ---
+  checkDayRolloverInitial() {
+    const today = this.getTodayString();
+    const lastDate = localStorage.getItem(this.STORAGE_KEY_LAST_DATE);
+    if (!lastDate) {
+      localStorage.setItem(this.STORAGE_KEY_LAST_DATE, today);
+    } else if (lastDate !== today) {
+      this.rolloverToDate(today, lastDate, false);
+    }
+  }
+
+  rolloverToDate(newDateStr, oldDateStr, triggerRender = true) {
+    const workers = this.loadWorkersRaw();
+    const now = Date.now();
+
+    for (const w of workers) {
+      // Archive yesterday's shift if active or finished
+      if (!w.shiftHistory) w.shiftHistory = [];
+      if (w.status === 'clocked_in' && w.lastClockIn) {
+        w.shiftHistory.unshift({
+          date: oldDateStr || w.shiftDate || 'Previous',
+          clockIn: w.lastClockIn,
+          clockOut: now,
+          duration: this.formatDuration(Math.floor((now - w.lastClockIn) / 1000))
+        });
+      } else if (w.status === 'clocked_out' && w.lastClockIn && w.lastClockOut) {
+        w.shiftHistory.unshift({
+          date: oldDateStr || w.shiftDate || 'Previous',
+          clockIn: w.lastClockIn,
+          clockOut: w.lastClockOut,
+          duration: this.formatDuration(Math.floor((w.lastClockOut - w.lastClockIn) / 1000))
+        });
+      }
+
+      // Next day reset: retains name and all info in database, but neither clocked in nor clocked out yet!
+      w.status = 'not_clocked_in';
+      w.lastClockIn = null;
+      w.lastClockOut = null;
+      w.shiftDate = newDateStr;
+    }
+
+    localStorage.setItem(this.STORAGE_KEY_LAST_DATE, newDateStr);
+    localStorage.setItem(this.STORAGE_KEY_WORKERS, JSON.stringify(workers));
+    this.workers = workers;
+
+    if (triggerRender) {
+      this.render();
+    }
+  }
+
+  simulateNextDay() {
+    const currentStr = this.getCurrentShiftDate();
+    const parts = currentStr.split('-');
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() + 1);
+
+    const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    this.rolloverToDate(nextStr, currentStr, true);
+
+    const formattedDate = this.formatDateDisplay(nextStr);
+    const msg = `Shift date advanced to ${formattedDate}. All personnel retained in company database; shift statuses reset to 'Not Clocked In Yet'.`;
+
+    if (window.appendAiMessage) {
+      window.appendAiMessage(msg, '🌅 Next Day Shift Active');
+    }
+    if (window.speechEngine && window.speechEngine.speak) {
+      window.speechEngine.speak(`Shift date advanced to ${formattedDate}. All personnel are in the database, standing by for shift check-in.`);
+    }
+
+    return msg;
+  }
+
+  loadWorkersRaw() {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY_WORKERS);
       if (raw) {
@@ -64,53 +160,72 @@ class LaborEngine {
       console.error('Failed to parse workers data', e);
     }
 
-    // Default Applied Materials Cleanroom Seed Roster (3 in, 2 out)
     const now = Date.now();
+    const today = this.getTodayString();
     const defaultWorkers = [
       {
         id: 'w_1',
-        name: 'Alex Chen',
-        role: 'Lithography Lead',
-        status: 'clocked_in',
-        lastClockIn: now - (3 * 3600 * 1000 + 14 * 60 * 1000 + 22 * 1000), // ~3h 14m ago
-        lastClockOut: null
-      },
-      {
-        id: 'w_2',
         name: 'Elena Rostova',
         role: 'Process Engineer',
         status: 'clocked_in',
+        shiftDate: today,
         lastClockIn: now - (1 * 3600 * 1000 + 45 * 60 * 1000 + 10 * 1000), // ~1h 45m ago
-        lastClockOut: null
+        lastClockOut: null,
+        shiftHistory: [],
+        dateAdded: new Date(now - 86400000 * 30).toISOString()
+      },
+      {
+        id: 'w_2',
+        name: 'Alex Chen',
+        role: 'Lithography Lead',
+        status: 'clocked_out',
+        shiftDate: today,
+        lastClockIn: now - (8 * 3600 * 1000),
+        lastClockOut: now - (1 * 3600 * 1000 + 15 * 60 * 1000),
+        shiftHistory: [],
+        dateAdded: new Date(now - 86400000 * 60).toISOString()
       },
       {
         id: 'w_3',
         name: 'Marcus Vance',
         role: 'CVD Specialist',
-        status: 'clocked_out',
-        lastClockIn: now - (8 * 3600 * 1000),
-        lastClockOut: now - (4 * 3600 * 1000 + 30 * 60 * 1000)
+        status: 'not_clocked_in',
+        shiftDate: today,
+        lastClockIn: null,
+        lastClockOut: null,
+        shiftHistory: [],
+        dateAdded: new Date(now - 86400000 * 10).toISOString()
       },
       {
         id: 'w_4',
         name: 'Sarah Jenkins',
         role: 'Cleanroom QA Tech',
-        status: 'clocked_in',
-        lastClockIn: now - (42 * 60 * 1000 + 5 * 1000), // ~42m ago
-        lastClockOut: null
+        status: 'not_clocked_in',
+        shiftDate: today,
+        lastClockIn: null,
+        lastClockOut: null,
+        shiftHistory: [],
+        dateAdded: new Date(now - 86400000 * 5).toISOString()
       },
       {
         id: 'w_5',
         name: 'Tyler Reed',
         role: 'Equipment Tech',
-        status: 'clocked_out',
-        lastClockIn: now - (24 * 3600 * 1000),
-        lastClockOut: now - (16 * 3600 * 1000)
+        status: 'not_clocked_in',
+        shiftDate: today,
+        lastClockIn: null,
+        lastClockOut: null,
+        shiftHistory: [],
+        dateAdded: new Date(now - 86400000 * 2).toISOString()
       }
     ];
 
-    this.saveWorkers(defaultWorkers);
+    localStorage.setItem(this.STORAGE_KEY_WORKERS, JSON.stringify(defaultWorkers));
     return defaultWorkers;
+  }
+
+  loadWorkers() {
+    return this.loadWorkersRaw();
   }
 
   saveWorkers(data = this.workers) {
@@ -123,9 +238,48 @@ class LaborEngine {
     localStorage.setItem(this.STORAGE_KEY_LOGS, JSON.stringify(this.logs));
   }
 
+  // --- CURRENT USER / OPERATOR IDENTITY MANAGEMENT ---
+  getCurrentUserId() {
+    let id = localStorage.getItem(this.STORAGE_KEY_CURRENT_USER);
+    if (!id || !this.workers.some(w => w.id === id)) {
+      id = this.workers[0] ? this.workers[0].id : null;
+      if (id) localStorage.setItem(this.STORAGE_KEY_CURRENT_USER, id);
+    }
+    return id;
+  }
+
+  getCurrentUser() {
+    const id = this.getCurrentUserId();
+    return this.workers.find(w => w.id === id) || null;
+  }
+
+  getCurrentUserName() {
+    const user = this.getCurrentUser();
+    return user ? user.name : 'Operator';
+  }
+
+  setCurrentUser(id) {
+    if (this.workers.some(w => w.id === id)) {
+      localStorage.setItem(this.STORAGE_KEY_CURRENT_USER, id);
+      const user = this.workers.find(w => w.id === id);
+      this.render();
+
+      const notifyText = `Active operator profile set to ${user.name}. You may now clock in or clock out for your shift.`;
+      if (window.appendAiMessage) {
+        window.appendAiMessage(notifyText, '👤 Operator Active');
+      }
+      return user;
+    }
+    return null;
+  }
+
+  ensureValidCurrentUser() {
+    this.getCurrentUserId();
+  }
+
   // --- DURATION FORMATTING ENGINE ---
   /**
-   * Plain-English duration formatter satisfying all user requirements:
+   * Plain-English duration formatter satisfying all strict requirements:
    * - Include hours only if greater than 0 ("1 hour, 5 minutes and 2 seconds")
    * - Use singular and plural correctly ("1 minute", "2 minutes")
    * - Always accurate to the second, no rounding
@@ -147,9 +301,7 @@ class LaborEngine {
       parts.push(`${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
     }
 
-    // Skip any unit that is 0, except seconds:
-    // When hours and minutes are 0, seconds is kept (e.g. 45 seconds -> "45 seconds", 0 seconds -> "0 seconds")
-    // When hours > 0 or minutes > 0, seconds is kept if > 0
+    // Skip any unit that is 0, except seconds
     if (seconds > 0 || (hours === 0 && minutes === 0)) {
       parts.push(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`);
     }
@@ -188,52 +340,191 @@ class LaborEngine {
     return `${s}s`;
   }
 
-  // --- WORKER ROSTER OPERATIONS ---
+  // --- WORKER ROSTER OPERATIONS & SELF-ONLY CLOCK ENFORCEMENT ---
+  /**
+   * Adds a new hire to the persistent database.
+   * New hires start with status: 'not_clocked_in' (they won't be clocked in or clocked out yet).
+   * They persist across sessions and day rollovers.
+   */
   addWorker(name, role) {
     if (!name || !name.trim()) return null;
     const worker = {
       id: 'w_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       name: name.trim(),
       role: (role && role.trim()) ? role.trim() : 'Cleanroom Specialist',
-      status: 'clocked_out',
+      status: 'not_clocked_in', // New hires are NOT clocked in or clocked out yet!
+      shiftDate: this.getCurrentShiftDate(),
       lastClockIn: null,
-      lastClockOut: null
+      lastClockOut: null,
+      shiftHistory: [],
+      dateAdded: new Date().toISOString()
     };
     this.workers.unshift(worker);
     this.saveWorkers();
     this.render();
+
+    const notifyMsg = `Registered new cleanroom technician ${worker.name} (${worker.role}) in persistent database. Initial status: Not Clocked In Yet.`;
+    if (window.appendAiMessage) {
+      window.appendAiMessage(notifyMsg, '➕ New Hire Registered');
+    }
+    if (window.speechEngine && window.speechEngine.speak) {
+      window.speechEngine.speak(`New hire ${worker.name} added to company database.`);
+    }
+
     return worker;
   }
 
   removeWorker(id) {
-    this.workers = this.workers.filter(w => w.id !== id);
-    this.saveWorkers();
-    this.render();
+    const worker = this.workers.find(w => w.id === id);
+    const name = worker ? worker.name : 'Worker';
+
+    if (confirm(`Remove ${name} from the company workforce database, sir?`)) {
+      this.workers = this.workers.filter(w => w.id !== id);
+      if (this.getCurrentUserId() === id) {
+        localStorage.removeItem(this.STORAGE_KEY_CURRENT_USER);
+        this.ensureValidCurrentUser();
+      }
+      this.saveWorkers();
+      this.render();
+    }
   }
 
-  toggleWorker(id) {
-    const worker = this.workers.find(w => w.id === id);
-    if (!worker) return null;
-    const now = Date.now();
-    if (worker.status === 'clocked_in') {
-      worker.status = 'clocked_out';
-      worker.lastClockOut = now;
-    } else {
-      worker.status = 'clocked_in';
-      worker.lastClockIn = now;
+  /**
+   * Clock Out enforcement: User can ONLY clock out their self.
+   */
+  clockOutUser(workerId = null) {
+    const activeUserId = this.getCurrentUserId();
+    const targetId = workerId || activeUserId;
+
+    // Security check: Only self-clock-out is permitted
+    if (targetId !== activeUserId) {
+      const activeName = this.getCurrentUserName();
+      const targetWorker = this.workers.find(w => w.id === targetId);
+      const targetName = targetWorker ? targetWorker.name : 'this worker';
+
+      const errorMsg = `Access denied, sir. Company policy dictates workers may only clock out themselves. You are currently operating as ${activeName}.`;
+      if (window.appendAiMessage) {
+        window.appendAiMessage(errorMsg, '🔒 Security Restriction');
+      }
+      if (window.speechEngine && window.speechEngine.speak) {
+        window.speechEngine.speak(`Access denied. Workers may only clock out themselves.`);
+      }
+      return { success: false, message: errorMsg };
     }
+
+    const worker = this.workers.find(w => w.id === targetId);
+    if (!worker) {
+      return { success: false, message: 'Worker record not found.' };
+    }
+
+    if (worker.status !== 'clocked_in') {
+      const warnMsg = `${worker.name} is not currently clocked in today.`;
+      if (window.appendAiMessage) {
+        window.appendAiMessage(warnMsg, '⚠️ Not Clocked In');
+      }
+      if (window.speechEngine && window.speechEngine.speak) {
+        window.speechEngine.speak(warnMsg);
+      }
+      return { success: false, message: warnMsg };
+    }
+
+    const now = Date.now();
+    const elapsedSec = Math.max(0, Math.floor((now - (worker.lastClockIn || now)) / 1000));
+    const durationWording = this.formatDuration(elapsedSec);
+
+    worker.status = 'clocked_out';
+    worker.lastClockOut = now;
+
+    if (!worker.shiftHistory) worker.shiftHistory = [];
+    worker.shiftHistory.unshift({
+      date: this.getCurrentShiftDate(),
+      clockIn: worker.lastClockIn,
+      clockOut: now,
+      duration: durationWording
+    });
+
     this.saveWorkers();
     this.render();
-    return worker;
+
+    const successMsg = `${worker.name} clocked out. Shift completed for ${durationWording}.`;
+    if (window.appendAiMessage) {
+      window.appendAiMessage(successMsg, '⏹️ Shift Clocked Out');
+    }
+    if (window.speechEngine && window.speechEngine.speak) {
+      window.speechEngine.speak(`${worker.name} clocked out. Shift completed for ${durationWording}.`);
+    }
+
+    return {
+      success: true,
+      durationWording,
+      message: successMsg
+    };
+  }
+
+  /**
+   * Clock In: User clocks in their self.
+   */
+  clockInUser(workerId = null) {
+    const activeUserId = this.getCurrentUserId();
+    const targetId = workerId || activeUserId;
+
+    if (targetId !== activeUserId) {
+      const activeName = this.getCurrentUserName();
+      const errorMsg = `Access denied, sir. You may only clock in for yourself (${activeName}).`;
+      if (window.appendAiMessage) {
+        window.appendAiMessage(errorMsg, '🔒 Security Restriction');
+      }
+      if (window.speechEngine && window.speechEngine.speak) {
+        window.speechEngine.speak(`Access denied. You may only clock in for yourself.`);
+      }
+      return { success: false, message: errorMsg };
+    }
+
+    const worker = this.workers.find(w => w.id === targetId);
+    if (!worker) {
+      return { success: false, message: 'Worker record not found.' };
+    }
+
+    if (worker.status === 'clocked_in') {
+      const warnMsg = `${worker.name} is already clocked in today.`;
+      if (window.appendAiMessage) {
+        window.appendAiMessage(warnMsg, 'ℹ️ Already Clocked In');
+      }
+      return { success: false, message: warnMsg };
+    }
+
+    const now = Date.now();
+    worker.status = 'clocked_in';
+    worker.lastClockIn = now;
+    worker.lastClockOut = null;
+    worker.shiftDate = this.getCurrentShiftDate();
+
+    this.saveWorkers();
+    this.render();
+
+    const timeStr = new Date(now).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const successMsg = `${worker.name} clocked in at ${timeStr}. Active shift initiated.`;
+    if (window.appendAiMessage) {
+      window.appendAiMessage(successMsg, '▶️ Shift Clocked In');
+    }
+    if (window.speechEngine && window.speechEngine.speak) {
+      window.speechEngine.speak(`${worker.name} clocked in for cleanroom shift.`);
+    }
+
+    return {
+      success: true,
+      message: successMsg
+    };
   }
 
   getSummary() {
     const clockedIn = this.workers.filter(w => w.status === 'clocked_in').length;
     const clockedOut = this.workers.filter(w => w.status === 'clocked_out').length;
-    return { clockedIn, clockedOut, total: this.workers.length };
+    const notClockedIn = this.workers.filter(w => w.status === 'not_clocked_in' || !w.status).length;
+    return { clockedIn, clockedOut, notClockedIn, total: this.workers.length };
   }
 
-  // --- LABOR CLOCK OPERATIONS ---
+  // --- LABOR CLOCK (COUNT-UP TIMER) OPERATIONS ---
   isClockRunning() {
     return this.clockStartTime !== null && this.clockStartTime > 0;
   }
@@ -349,7 +640,7 @@ class LaborEngine {
     this.renderLogs();
   }
 
-  // --- NAVIGATION / VIEW FLIP ---
+  // --- NAVIGATION / VIEW SWITCHING ---
   isLaborOpen() {
     return this.isViewOpen;
   }
@@ -413,14 +704,16 @@ class LaborEngine {
   // --- RENDERING METHODS ---
   render() {
     this.renderSummary();
+    this.renderCurrentUserDropdown();
     this.renderWorkers();
     this.renderClock();
     this.renderLogs();
+    this.renderMiniWidget();
   }
 
   renderSummary() {
     const summary = this.getSummary();
-    const summaryText = `${summary.clockedIn} clocked in / ${summary.clockedOut} clocked out`;
+    const summaryText = `${summary.clockedIn} clocked in / ${summary.clockedOut} clocked out / ${summary.notClockedIn} not clocked in`;
 
     const badge = document.getElementById('laborSummaryBadge');
     if (badge) badge.textContent = summaryText;
@@ -432,7 +725,9 @@ class LaborEngine {
         <span class="stat-divider">•</span>
         <span class="stat-pill clocked-out"><strong>${summary.clockedOut}</strong> Clocked Out</span>
         <span class="stat-divider">•</span>
-        <span class="stat-pill total"><strong>${summary.total}</strong> Total Personnel</span>
+        <span class="stat-pill not-clocked-in"><strong>${summary.notClockedIn}</strong> Not Clocked In Yet</span>
+        <span class="stat-divider">•</span>
+        <span class="stat-pill total"><strong>${summary.total}</strong> in Database</span>
       `;
     }
 
@@ -440,6 +735,26 @@ class LaborEngine {
     if (workerCountBadge) {
       workerCountBadge.textContent = `${summary.total} Workers`;
     }
+
+    const shiftDateSub = document.getElementById('laborCurrentDateSub');
+    if (shiftDateSub) {
+      const formatted = this.formatDateDisplay(this.getCurrentShiftDate());
+      shiftDateSub.textContent = `Applied Materials Fabrication Facility • Shift Date: ${formatted}`;
+    }
+  }
+
+  renderCurrentUserDropdown() {
+    const selectEl = document.getElementById('currentUserSelect');
+    if (!selectEl) return;
+
+    const currentId = this.getCurrentUserId();
+    selectEl.innerHTML = this.workers.map(w => {
+      const selected = w.id === currentId ? 'selected' : '';
+      let statusIcon = '○ Not In';
+      if (w.status === 'clocked_in') statusIcon = '● In';
+      else if (w.status === 'clocked_out') statusIcon = '✓ Out';
+      return `<option value="${w.id}" ${selected}>${this.escape(w.name)} (${this.escape(w.role || 'Tech')}) [${statusIcon}]</option>`;
+    }).join('');
   }
 
   renderClock() {
@@ -504,35 +819,100 @@ class LaborEngine {
     if (this.workers.length === 0) {
       listEl.innerHTML = `
         <div class="empty-state">
-          <p>No registered workers in roster.</p>
-          <small>Add cleanroom personnel using the form above.</small>
+          <p>No registered personnel in company database.</p>
+          <small>Add new hires using the registration form above.</small>
         </div>
       `;
       return;
     }
 
+    const currentUserId = this.getCurrentUserId();
+
     listEl.innerHTML = this.workers.map(w => {
+      const isSelf = w.id === currentUserId;
       const isClockedIn = w.status === 'clocked_in';
+      const isClockedOut = w.status === 'clocked_out';
+      const isNotClockedIn = w.status === 'not_clocked_in' || (!isClockedIn && !isClockedOut);
+
+      // Duration & status display
       let durationHtml = '';
       if (isClockedIn && w.lastClockIn) {
         const elapsed = Math.max(0, Math.floor((Date.now() - w.lastClockIn) / 1000));
         durationHtml = `<span class="worker-duration" id="worker-dur-${w.id}">⏱️ ${this.formatCompactDuration(elapsed)} on shift</span>`;
-      } else if (w.lastClockOut) {
+      } else if (isClockedOut && w.lastClockOut) {
         const outTime = new Date(w.lastClockOut).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        durationHtml = `<span class="worker-last-out">Last clocked out: ${outTime}</span>`;
+        durationHtml = `<span class="worker-last-out">Shift complete (${outTime})</span>`;
       } else {
-        durationHtml = `<span class="worker-last-out">Not yet clocked in</span>`;
+        durationHtml = `<span class="worker-pending-badge">○ Ready for shift</span>`;
+      }
+
+      // Status Badge
+      let badgeHtml = '';
+      if (isClockedIn) {
+        badgeHtml = `<span class="worker-badge clocked-in"><span class="badge-dot"></span>Clocked In</span>`;
+      } else if (isClockedOut) {
+        badgeHtml = `<span class="worker-badge clocked-out"><span class="badge-dot"></span>Clocked Out</span>`;
+      } else {
+        badgeHtml = `<span class="worker-badge not-clocked-in"><span class="badge-dot"></span>Not Clocked In Yet</span>`;
+      }
+
+      // Self-Only Clock Actions logic:
+      // "the user can only Clock out their self"
+      let actionBtnHtml = '';
+      if (isSelf) {
+        if (isClockedIn) {
+          actionBtnHtml = `
+            <button class="worker-toggle-btn clock-out"
+                    onclick="window.laborEngine.clockOutUser('${w.id}')"
+                    aria-label="Clock out ${this.escape(w.name)}">
+              ⏹ Clock Out (You)
+            </button>
+          `;
+        } else if (isClockedOut) {
+          actionBtnHtml = `
+            <button class="worker-toggle-btn clock-in"
+                    onclick="window.laborEngine.clockInUser('${w.id}')"
+                    aria-label="Re-clock in for next shift">
+              ▶ Clock In Again
+            </button>
+          `;
+        } else {
+          actionBtnHtml = `
+            <button class="worker-toggle-btn clock-in"
+                    onclick="window.laborEngine.clockInUser('${w.id}')"
+                    aria-label="Clock in for shift">
+              ▶ Clock In (You)
+            </button>
+          `;
+        }
+      } else {
+        // Other workers: Lock Clock Out button as mandated
+        if (isClockedIn) {
+          actionBtnHtml = `
+            <button class="worker-toggle-btn locked"
+                    title="Security Restriction: Only ${this.escape(w.name)} may clock out themselves"
+                    onclick="window.laborEngine.clockOutUser('${w.id}')">
+              🔒 Clock Out (Self Only)
+            </button>
+          `;
+        } else {
+          actionBtnHtml = `
+            <button class="worker-toggle-btn switch-user-btn"
+                    title="Switch active operator identity to ${this.escape(w.name)}"
+                    onclick="window.laborEngine.setCurrentUser('${w.id}')">
+              👤 Set as Me
+            </button>
+          `;
+        }
       }
 
       return `
-        <div class="worker-item ${isClockedIn ? 'in-shift' : 'off-shift'}" data-worker-id="${w.id}">
+        <div class="worker-item ${isSelf ? 'current-user-card' : ''} ${isClockedIn ? 'in-shift' : (isClockedOut ? 'off-shift' : 'pending-shift')}" data-worker-id="${w.id}">
           <div class="worker-main-info">
             <div class="worker-name-row">
               <span class="worker-name">${this.escape(w.name)}</span>
-              <span class="worker-badge ${isClockedIn ? 'clocked-in' : 'clocked-out'}" aria-label="Status: ${isClockedIn ? 'Clocked In' : 'Clocked Out'}">
-                <span class="badge-dot"></span>
-                ${isClockedIn ? 'Clocked In' : 'Clocked Out'}
-              </span>
+              ${isSelf ? '<span class="self-pill">👤 YOU</span>' : ''}
+              ${badgeHtml}
             </div>
             <div class="worker-meta-row">
               <span class="worker-role">${this.escape(w.role || 'Cleanroom Specialist')}</span>
@@ -540,14 +920,10 @@ class LaborEngine {
             </div>
           </div>
           <div class="worker-actions">
-            <button class="worker-toggle-btn ${isClockedIn ? 'clock-out' : 'clock-in'}"
-                    onclick="window.laborEngine.toggleWorker('${w.id}')"
-                    aria-label="${isClockedIn ? 'Clock out ' + this.escape(w.name) : 'Clock in ' + this.escape(w.name)}">
-              ${isClockedIn ? 'Clock Out' : 'Clock In'}
-            </button>
+            ${actionBtnHtml}
             <button class="worker-remove-btn"
                     onclick="window.laborEngine.removeWorker('${w.id}')"
-                    title="Remove worker from roster"
+                    title="Remove worker from company database"
                     aria-label="Remove ${this.escape(w.name)}">
               &times;
             </button>
@@ -565,7 +941,7 @@ class LaborEngine {
       logEl.innerHTML = `
         <div class="empty-state">
           <p>No completed labor sessions logged yet.</p>
-          <small>Start and stop the Labor Clock to log shift durations.</small>
+          <small>Start and stop the Labor Clock to log active shift sessions.</small>
         </div>
       `;
       return;
@@ -586,6 +962,59 @@ class LaborEngine {
         </div>
       `;
     }).join('');
+  }
+
+  renderMiniWidget() {
+    const container = document.getElementById('miniOperatorContent');
+    if (!container) return;
+
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <p>No operator selected.</p>
+          <button class="primary-btn mini-btn" onclick="window.laborEngine.openManageLabor()">Select Operator</button>
+        </div>
+      `;
+      return;
+    }
+
+    const isClockedIn = currentUser.status === 'clocked_in';
+    const isClockedOut = currentUser.status === 'clocked_out';
+    const now = Date.now();
+
+    let durationText = 'Shift Not Started';
+    if (isClockedIn && currentUser.lastClockIn) {
+      const elapsed = Math.max(0, Math.floor((now - currentUser.lastClockIn) / 1000));
+      durationText = `⏱️ ${this.formatCompactDuration(elapsed)} active`;
+    } else if (isClockedOut && currentUser.lastClockOut) {
+      durationText = `Clocked Out Today`;
+    }
+
+    let actionBtn = '';
+    if (isClockedIn) {
+      actionBtn = `<button class="action-btn mini-clock-btn clock-out" onclick="window.laborEngine.clockOutUser('${currentUser.id}')">⏹ Clock Out</button>`;
+    } else {
+      actionBtn = `<button class="primary-btn mini-clock-btn clock-in" onclick="window.laborEngine.clockInUser('${currentUser.id}')">▶ Clock In</button>`;
+    }
+
+    container.innerHTML = `
+      <div class="mini-user-info">
+        <div class="mini-user-header">
+          <span class="mini-user-name">${this.escape(currentUser.name)}</span>
+          <span class="worker-badge ${isClockedIn ? 'clocked-in' : (isClockedOut ? 'clocked-out' : 'not-clocked-in')}">
+            <span class="badge-dot"></span>
+            ${isClockedIn ? 'Clocked In' : (isClockedOut ? 'Clocked Out' : 'Not In Yet')}
+          </span>
+        </div>
+        <div class="mini-user-role">${this.escape(currentUser.role || 'Cleanroom Specialist')}</div>
+        <div class="mini-user-duration" id="miniUserDuration">${durationText}</div>
+      </div>
+      <div class="mini-actions-row">
+        ${actionBtn}
+        <button class="ghost-btn mini-btn" onclick="window.laborEngine.openManageLabor()">📊 Open Roster</button>
+      </div>
+    `;
   }
 
   // --- LIVE 1-SECOND TICK ---
@@ -611,6 +1040,16 @@ class LaborEngine {
         }
       }
     }
+
+    // 3. Tick mini sidebar widget for current user
+    const currentUser = this.getCurrentUser();
+    if (currentUser && currentUser.status === 'clocked_in' && currentUser.lastClockIn) {
+      const miniDurEl = document.getElementById('miniUserDuration');
+      if (miniDurEl) {
+        const elapsed = Math.max(0, Math.floor((now - currentUser.lastClockIn) / 1000));
+        miniDurEl.textContent = `⏱️ ${this.formatCompactDuration(elapsed)} active`;
+      }
+    }
   }
 
   escape(str) {
@@ -624,6 +1063,9 @@ class LaborEngine {
   }
 
   init() {
+    // Check for calendar day rollover on startup
+    this.checkDayRolloverInitial();
+
     // Start live interval (1 second)
     if (this.timerTickInterval) clearInterval(this.timerTickInterval);
     this.timerTickInterval = setInterval(() => this.tick(), 1000);
@@ -643,6 +1085,20 @@ class LaborEngine {
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         this.closeManageLabor();
+      });
+    }
+
+    const userSelect = document.getElementById('currentUserSelect');
+    if (userSelect) {
+      userSelect.addEventListener('change', (e) => {
+        this.setCurrentUser(e.target.value);
+      });
+    }
+
+    const nextDayBtn = document.getElementById('simulateNextDayBtn');
+    if (nextDayBtn) {
+      nextDayBtn.addEventListener('click', () => {
+        this.simulateNextDay();
       });
     }
 

@@ -141,7 +141,54 @@ class CommandEngine {
       };
     }
 
-    // 6. Conversational affirmative "yes" after being offered to open Manage Labor
+    // 6. Clock Out: "[AI NAME], Clock out", "Clock me out" (Self-Only Enforcement)
+    if (/(?:clock\s+(?:me\s+)?out|punch\s+out)/i.test(lower)) {
+      // Check if user specifically requested to clock out another worker
+      const targetMatch = lower.match(/(?:clock\s+(?:out\s+)?|punch\s+(?:out\s+)?)(?!me\b|myself\b|now\b|today\b)([a-zA-Z\s]+)/i);
+      const specifiedTarget = targetMatch ? targetMatch[1].trim() : '';
+
+      if (specifiedTarget && specifiedTarget !== 'out' && !/^(?:for\s+the\s+day|shift|for\s+shift)$/i.test(specifiedTarget)) {
+        const activeName = window.laborEngine.getCurrentUserName();
+        return {
+          handled: true,
+          responseText: `Access denied, sir. Company policy dictates workers may only clock out themselves. You are currently operating as ${activeName}.`,
+          actionTag: '🔒 Security Restriction',
+          actionType: 'labor'
+        };
+      }
+
+      const res = window.laborEngine.clockOutUser();
+      return {
+        handled: true,
+        responseText: res.message,
+        actionTag: res.success ? '⏹️ Shift Clocked Out' : '⚠️ Clock Out Restriction',
+        actionType: 'labor'
+      };
+    }
+
+    // 7. Clock In: "[AI NAME], Clock in", "Clock me in"
+    if (/(?:clock\s+(?:me\s+)?in|punch\s+in)/i.test(lower)) {
+      const res = window.laborEngine.clockInUser();
+      return {
+        handled: true,
+        responseText: res.message,
+        actionTag: res.success ? '▶️ Shift Clocked In' : 'ℹ️ Shift Active',
+        actionType: 'labor'
+      };
+    }
+
+    // 8. Simulate Next Day: "[AI NAME], simulate next day", "next day", "rollover shift"
+    if (/(?:simulate\s+next\s+day|advance\s+(?:to\s+)?next\s+day|rollover\s+(?:shift|day))/i.test(lower)) {
+      const res = window.laborEngine.simulateNextDay();
+      return {
+        handled: true,
+        responseText: res,
+        actionTag: '🌅 Next Day Shift Active',
+        actionType: 'labor'
+      };
+    }
+
+    // 9. Conversational affirmative "yes" after being offered to open Manage Labor
     if (/^(?:yes|sure|okay|ok|yeah|affirmative|open\s+it|please\s+do)$/i.test(lower) && window.laborEngine.lastOfferToOpen) {
       window.laborEngine.lastOfferToOpen = false;
       const resp = window.laborEngine.openManageLabor();
