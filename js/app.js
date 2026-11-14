@@ -6,11 +6,15 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Assistant Designation / Name Customization Functions
-  window.getAssistantName = function() {
-    return localStorage.getItem('amat_assistant_name') || 'J.A.R.V.I.S.';
+  window.getAssistantName = function () {
+    const stored = localStorage.getItem('amat_assistant_name');
+    if (!stored || stored === 'J.A.R.V.I.S.' || stored === 'Jarvis') {
+      return 'Voxel';
+    }
+    return stored;
   };
 
-  window.setAssistantName = function(newName) {
+  window.setAssistantName = function (newName) {
     if (!newName || !newName.trim()) return;
     const cleanName = newName.trim();
     localStorage.setItem('amat_assistant_name', cleanName);
@@ -225,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function parseWakeWord(transcript) {
     if (!transcript || typeof transcript !== 'string') return null;
 
-    const rawName = (window.getAssistantName ? window.getAssistantName() : 'J.A.R.V.I.S.').trim();
+    const rawName = (window.getAssistantName ? window.getAssistantName() : 'Voxel').trim();
     const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     if (!cleanName) return null;
 
@@ -480,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (window.GeminiAI && window.GeminiAI.isConnected()) {
-        const assistantName = window.getAssistantName ? window.getAssistantName() : 'J.A.R.V.I.S.';
+        const assistantName = window.getAssistantName ? window.getAssistantName() : 'Voxel';
         const reply = await window.GeminiAI.ask(text, assistantName);
         appendAiMessage(reply, '⚡ Gemini AI');
         speechEngine.speak(reply);
@@ -575,6 +579,10 @@ document.addEventListener('DOMContentLoaded', () => {
     bindMessageActions(row);
     scrollToBottom();
   }
+
+  // Expose globally for external controllers (e.g. LaborEngine)
+  window.appendAiMessage = appendAiMessage;
+  window.appendUserMessage = appendUserMessage;
 
   /**
    * Safe and clean Markdown Formatter for Gemini outputs
@@ -1020,11 +1028,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (newGender === 'female') {
         // Priority: Google UK English Female (en-GB)
-        const femaleVoice = voices.find(v => 
+        const femaleVoice = voices.find(v =>
           !isExcludedVoice(v, 'female') &&
           v.name.includes('Google') && (v.name.includes('UK') || v.lang.includes('GB')) &&
           (v.name.includes('Female') || getVoiceGender(v) === 'female')
-        ) || voices.find(v => 
+        ) || voices.find(v =>
           !isExcludedVoice(v, 'female') &&
           (v.lang === 'en-GB' || v.lang.startsWith('en-GB') || v.lang.startsWith('en-IE')) &&
           getVoiceGender(v) === 'female'
@@ -1037,11 +1045,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (newGender === 'male') {
         // Priority: Google UK English Male (en-GB)
-        const maleVoice = voices.find(v => 
+        const maleVoice = voices.find(v =>
           !isExcludedVoice(v, 'male') &&
           v.name.includes('Google') && (v.name.includes('UK') || v.lang.includes('GB')) &&
           (v.name.includes('Male') || getVoiceGender(v) === 'male')
-        ) || voices.find(v => 
+        ) || voices.find(v =>
           !isExcludedVoice(v, 'male') &&
           (v.lang === 'en-GB' || v.lang.startsWith('en-GB')) &&
           (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur'))

@@ -30,7 +30,7 @@ const GeminiAI = (() => {
     return data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || 'No response, sir.';
   }
 
-  async function ask(userText, assistantName = 'J.A.R.V.I.S.') {
+  async function ask(userText, assistantName = 'Voxel') {
     const system =
       `You are ${assistantName}, a concise, witty AI assistant for an Applied Materials ` +
       `semiconductor engineering interface. Keep answers short (2-4 sentences) since they ` +

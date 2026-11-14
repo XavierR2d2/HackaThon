@@ -11,7 +11,10 @@ class CommandEngine {
   }
 
   getName() {
-    return window.getAssistantName ? window.getAssistantName() : (localStorage.getItem('amat_assistant_name') || 'J.A.R.V.I.S.');
+    if (window.getAssistantName) return window.getAssistantName();
+    const stored = localStorage.getItem('amat_assistant_name');
+    if (!stored || stored === 'J.A.R.V.I.S.' || stored === 'Jarvis') return 'Voxel';
+    return stored;
   }
 
   /**
@@ -20,10 +23,20 @@ class CommandEngine {
    */
   process(rawInput) {
     if (!rawInput) return null;
-    const input = rawInput.trim();
+    let input = rawInput.trim();
+
+    // Strip assistant name prefix if user typed or spoke "[AI NAME], ..."
+    const currentName = this.getName().toLowerCase();
+    const prefixRegex = new RegExp(`^(?:hey\\s+|hi\\s+|hello\\s+|ok\\s+|okay\\s+)?(?:${currentName}|voxel|jarvis|friday|edith)[,\\s:]+`, 'i');
+    input = input.replace(prefixRegex, '').trim();
+
     const lower = input.toLowerCase();
 
-    // 0. Name Change & Identity Protocols
+    // 0. Cleanroom Labor & Labor Clock Directives
+    const laborResult = this.handleLaborCommand(lower, input);
+    if (laborResult) return laborResult;
+
+    // 1. Name Change & Identity Protocols
     const nameResult = this.handleNameCommand(lower, input);
     if (nameResult) return nameResult;
 
@@ -64,6 +77,83 @@ class CommandEngine {
     if (funResult) return funResult;
 
     return null; // Delegate to conversational AI engine
+  }
+
+  /* ----------------------------------------------------
+     LABOR CLOCK & CLEANROOM WORKFORCE DIRECTIVES
+     ---------------------------------------------------- */
+  handleLaborCommand(lower, original) {
+    if (!window.laborEngine) return null;
+
+    // 1. Open Manage Labor: "[AI NAME], open Manage Labor", "go to Manage Labor", "flip to Manage Labor", "manage labor"
+    if (/(?:open|go\s+to|flip\s+to|switch\s+to|show|view|display)\s+(?:the\s+)?manage\s+labor/i.test(lower) ||
+        /^(?:manage\s+labor|labor\s+management|open\s+labor)$/i.test(lower)) {
+      const resp = window.laborEngine.openManageLabor();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📊 Manage Labor Opened',
+        actionType: 'labor'
+      };
+    }
+
+    // 2. Return / Back: "[AI NAME], go back", "back to hud", "return to hud"
+    if (/(?:go\s+back|return\s+to\s+hud|back\s+to\s+hud|back\s+to\s+dashboard|exit\s+manage\s+labor|close\s+manage\s+labor|^go\s+back$|^back$)/i.test(lower)) {
+      const resp = window.laborEngine.closeManageLabor();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '↩️ Operational HUD',
+        actionType: 'labor'
+      };
+    }
+
+    // 3. Start Labor Clock: "[AI NAME], Start Labor Clock"
+    if (/(?:start|begin|run|launch)\s+(?:the\s+)?labor(?:\s+(?:clock|timer))?/i.test(lower)) {
+      const result = window.laborEngine.startLaborClock();
+      return {
+        handled: true,
+        responseText: result.message,
+        actionTag: result.status === 'already_running' ? '⏱️ Labor Clock Running' : '⏱️ Labor Clock Started',
+        actionType: 'labor'
+      };
+    }
+
+    // 4. Stop Labor Clock: "[AI NAME], Stop Labor Clock"
+    if (/(?:stop|end|finish|halt|cancel)\s+(?:the\s+)?labor(?:\s+(?:clock|timer))?/i.test(lower)) {
+      const result = window.laborEngine.stopLaborClock();
+      return {
+        handled: true,
+        responseText: result.message,
+        actionTag: result.status === 'stopped' ? '⏹️ Labor Clock Stopped' : '⚠️ Labor Clock Standby',
+        actionType: 'labor'
+      };
+    }
+
+    // 5. Query Labor Clock: "[AI NAME], how long has the labor clock been going?"
+    if (/(?:how\s+long\s+(?:has\s+)?(?:the\s+)?labor\s+clock|labor\s+clock\s+(?:status|time|duration|elapsed)|how\s+much\s+time\s+on\s+(?:the\s+)?labor\s+clock)/i.test(lower)) {
+      const result = window.laborEngine.queryLaborClock();
+      return {
+        handled: true,
+        responseText: result.message,
+        actionTag: '⏱️ Labor Clock Telemetry',
+        actionType: 'labor'
+      };
+    }
+
+    // 6. Conversational affirmative "yes" after being offered to open Manage Labor
+    if (/^(?:yes|sure|okay|ok|yeah|affirmative|open\s+it|please\s+do)$/i.test(lower) && window.laborEngine.lastOfferToOpen) {
+      window.laborEngine.lastOfferToOpen = false;
+      const resp = window.laborEngine.openManageLabor();
+      return {
+        handled: true,
+        responseText: resp,
+        actionTag: '📊 Manage Labor Opened',
+        actionType: 'labor'
+      };
+    }
+
+    return null;
   }
 
   /* ----------------------------------------------------

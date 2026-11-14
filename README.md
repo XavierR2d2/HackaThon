@@ -1,24 +1,24 @@
-# J.A.R.V.I.S. — Applied Materials Systems Interface
+# Voxel — Applied Materials Systems Interface
 
-An interactive, holographic voice and text AI assistant built for **Applied Materials**, inspired by Tony Stark's **J.A.R.V.I.S.** from *Iron Man*, powered by **Google Gemini AI**.
+An interactive, holographic voice and text AI assistant built for **Applied Materials**, inspired by Tony Stark's assistant from *Iron Man*, powered by **Google Gemini AI**.
 
-- **Google Gemini AI Integration (`gemini-3.5`, `gemini-3.1`, `gemini-3.1-pro`, `gemini-4-hydrogen`, `gemini-4-argon`)**: Endows J.A.R.V.I.S. with real-time generative intelligence to answer any question across science, physics, semiconductor engineering, programming, history, and general knowledge.
-- **British Suave Demeanor & Cadence**: Speaks with Paul Bettany's dry wit, sophisticated decorum, and zero chatbot filler.
-- **Custom Designation (Editable Name)**: Easily re-designate the assistant to **J.A.R.V.I.S.**, **F.R.I.D.A.Y.**, **E.D.I.T.H.**, or any custom name via voice (*"Change your name to Friday"*) or the UI in **System Protocols (⚙️)**.
+- **Google Gemini AI Integration (`gemini-3.5`, `gemini-3.1`, `gemini-3.1-pro`, `gemini-4-hydrogen`, `gemini-4-argon`)**: Endows Voxel with real-time generative intelligence to answer any question across science, physics, semiconductor engineering, programming, history, and general knowledge.
+- **British Suave Demeanor & Cadence**: Speaks with dry wit, sophisticated decorum, and zero chatbot filler.
+- **Custom Designation (Editable Name)**: Easily re-designate the assistant to **Voxel**, **F.R.I.D.A.Y.**, **E.D.I.T.H.**, or any custom name via voice (*"Change your name to Friday"*) or the UI in **System Protocols (⚙️)**.
 - **Dual Modality (Type + Speak)**: Full Web Speech API integration (`SpeechRecognition` & `SpeechSynthesis`).
 - **Applied Materials & Engineering Telemetry**: Cleanroom monitoring, wafer fabrication countdowns, atomic layer deposition knowledge, and precision math.
-- **Stark Arc HUD Interface**: Arc Reactor theme, live sinusoidal waveform canvas, and real-time frequency equalizer.
+- **Stark Arc HUD Interface**: Arc Reactor theme, and real-time frequency equalizer.
 
 ---
 
 ## ⚡ Connecting the Google Gemini AI API
 
-To allow J.A.R.V.I.S. to answer **any question** with Google's large language model:
+To allow Voxel to answer **any question** with Google's large language model:
 
 1. **Obtain a Free Gemini API Key**:
    - Visit [Google AI Studio](https://aistudio.google.com/app/apikey).
    - Sign in and click **"Create API Key"** (free tier available with generous limits).
-2. **Connect Key in J.A.R.V.I.S.**:
+2. **Connect Key in Voxel**:
    - Click the **"⚡ Connect Gemini Key"** pill in the top header (or open **System Protocols ⚙️**).
    - Paste your API key into the **Gemini API Key** field.
    - Choose your preferred model architecture:
@@ -43,7 +43,7 @@ To allow J.A.R.V.I.S. to answer **any question** with Google's large language mo
 You can change the assistant's name at any time:
 1. **Via Voice Command**:
    - *"Change your name to F.R.I.D.A.Y."*
-   - *"Call yourself J.A.R.V.I.S."*
+   - *"Call yourself Voxel"*
    - *"Rename yourself to [Any Name]"*
 2. **Via UI**:
    - Open **System Protocols (⚙️)** in the top right.
@@ -59,6 +59,11 @@ You can change the assistant's name at any time:
 | ⚡ **Gemini Question** | *"How does chemical vapor deposition differ from atomic layer deposition?"* | Generates in-depth, structured comparative analysis with J.A.R.V.I.S. decorum |
 | 🏷️ **Name Protocol** | *"Change your name to F.R.I.D.A.Y."* | *"As you wish, sir. Protocol updated. I shall now respond to the designation F.R.I.D.A.Y."* |
 | 🔬 **Telemetry** | *"Status report"* | *"All Applied Materials fabrication chambers, vacuum levels, and cleanroom atmospheric sensors are operating within optimal tolerances, sir."* |
+| ⏱️ **Labor Clock** | *"Voxel, Start Labor Clock"* | *"Labor clock started."* (or offers to view Manage Labor if on main HUD) |
+| ⏹️ **Labor Clock** | *"Voxel, Stop Labor Clock"* | *"Clock was going for 30 minutes and 21 seconds."* (Exact to the second, singular/plural accurate) |
+| 🔍 **Labor Status** | *"Voxel, how long has the labor clock been going?"* | *"The labor clock has been going for [duration]."* |
+| 📊 **Navigation** | *"Voxel, open Manage Labor"* | *"Opening Manage Labor"* (flips view to Cleanroom Workforce Telemetry) |
+| ↩️ **Navigation** | *"Voxel, go back"* | *"Returning to operational interface, sir."* |
 | ⏱️ **Countdowns** | *"Set timer for 45 seconds for wafer thermal anneal"* | *"Right away, sir. Initiating countdown for 45 seconds. I shall alert you upon completion."* |
 | ⚡ **HUD Theme** | *"Change theme to Stark"* | *"Reconfiguring visual interface to the STARK protocol, sir."* |
 | 📝 **Engineering Log** | *"Take note: Inspect CVD chamber pressure on tool 4"* | *"Logged into Applied Materials engineering records, sir: 'Inspect CVD chamber pressure on tool 4'."* |

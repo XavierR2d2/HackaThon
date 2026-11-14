@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="stark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>J.A.R.V.I.S. - Applied Materials Systems Interface</title>
+  <title>Voxel - Applied Materials Systems Interface</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
 </head>
+
 <body>
   <div class="app-layout">
     <!-- Header -->
@@ -20,7 +24,7 @@
             <span class="orb-glow"></span>
           </div>
           <div class="brand-text">
-            <h1><span id="assistantNameLabel">J.A.R.V.I.S.</span> <span class="badge">Applied Materials</span></h1>
+            <h1><span id="assistantNameLabel">Voxel</span> <span class="badge">Applied Materials</span></h1>
             <p class="status-indicator" id="systemStatus">
               <span class="status-dot"></span>
               <span class="status-text">All Systems Nominal</span>
@@ -34,8 +38,9 @@
         <div class="control-group">
           <label for="themeSelect" class="icon-btn" title="Change Visual Protocol">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+              <circle cx="12" cy="12" r="5" />
+              <path
+                d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
             </svg>
           </label>
           <select id="themeSelect" class="theme-dropdown" title="Select Visual Protocol">
@@ -47,15 +52,28 @@
 
         <!-- Gemini Core Quick Status / Connect Button -->
         <button id="geminiCoreBtn" class="action-btn gemini-btn" title="Gemini Neural Core Status & Key Configuration">
-          <svg class="icon-sparkle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-sparkle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
             <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"></path>
           </svg>
           <span id="geminiCorePill" class="core-pill offline">Gemini: Connect Key</span>
         </button>
 
+        <!-- Cleanroom Labor & Workforce Navigation Button -->
+        <button id="navManageLaborBtn" class="action-btn nav-labor-btn" title="Cleanroom Labor & Workforce Telemetry" aria-label="Manage Labor">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span class="btn-label">Manage Labor</span>
+        </button>
+
         <!-- Voice Output Toggle -->
         <button id="ttsToggleBtn" class="action-btn active" title="Toggle Vocal Synthesis">
-          <svg class="icon-speaker" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="icon-speaker" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path class="sound-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
           </svg>
@@ -75,7 +93,9 @@
         <button id="settingsModalBtn" class="action-btn icon-only" title="System Settings & Designation">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+            </path>
           </svg>
         </button>
       </div>
@@ -125,10 +145,12 @@
         <div class="input-container">
           <form id="inputForm" class="input-form">
             <!-- Voice Recognition Microphone Button -->
-            <button type="button" id="micBtn" class="mic-button" title="Speak to J.A.R.V.I.S. (Click to Engage / Disengage)">
+            <button type="button" id="micBtn" class="mic-button"
+              title="Speak to Voxel (Click to Engage / Disengage)">
               <div class="mic-ripple"></div>
               <div class="mic-inner">
-                <svg class="mic-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="mic-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                   <line x1="12" y1="19" x2="12" y2="23"></line>
@@ -139,13 +161,8 @@
 
             <!-- Text Input Area -->
             <div class="input-text-wrapper">
-              <input 
-                type="text" 
-                id="textInput" 
-                class="text-input" 
-                placeholder="Say my name to issue a directive, or type directly, sir..." 
-                autocomplete="off"
-              />
+              <input type="text" id="textInput" class="text-input"
+                placeholder="Say my name to issue a directive, or type directly, sir..." autocomplete="off" />
               <span class="shortcut-hint">Press ↵ Send • Say designation to speak</span>
             </div>
 
@@ -159,7 +176,8 @@
           </form>
 
           <div class="input-footer">
-            <span class="mic-status-label" id="micStatusLabel">Acoustic sensors active. Standing by for voice telemetry...</span>
+            <span class="mic-status-label" id="micStatusLabel">Acoustic sensors active. Standing by for voice
+              telemetry...</span>
             <span class="model-badge" id="modeBadge">Protocol: Applied Materials Core Intelligence</span>
           </div>
         </div>
@@ -231,6 +249,130 @@
           </div>
         </div>
       </aside>
+
+      <!-- Manage Labor & Cleanroom Telemetry Section -->
+      <section class="manage-labor-section" id="manageLaborSection" style="display: none;" aria-label="Manage Labor & Cleanroom Telemetry Section">
+        <!-- Labor Header Bar -->
+        <div class="labor-header-bar">
+          <div class="labor-header-left">
+            <button id="backToHudBtn" class="action-btn back-btn" title="Return to Operational HUD" aria-label="Return to Operational HUD">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>Back to HUD</span>
+            </button>
+            <div class="labor-title-group">
+              <div class="labor-title">
+                <span class="labor-dot"></span>
+                <h2>Cleanroom Labor & Workforce Telemetry</h2>
+              </div>
+              <p class="labor-sub">Applied Materials Fabrication Facility • Active Shift Operations</p>
+            </div>
+          </div>
+          <div class="labor-header-right">
+            <div class="labor-summary-badge" id="laborSummaryBadge">0 clocked in / 0 clocked out</div>
+          </div>
+        </div>
+
+        <!-- Labor Content Grid (2 Columns Responsive) -->
+        <div class="labor-grid">
+          <!-- Left Column: Active Labor Clock & Session Log -->
+          <div class="labor-col-left">
+            <!-- Active Labor Clock Widget -->
+            <div class="widget-card labor-clock-card">
+              <div class="card-header">
+                <h3>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  Active Labor Clock
+                </h3>
+                <span class="live-pill" id="laborClockStatusPill">STOPPED</span>
+              </div>
+              <div class="labor-clock-display-box">
+                <div class="labor-clock-digits" id="laborClockDigits" aria-live="polite">00:00:00</div>
+                <div class="labor-clock-sub" id="laborClockSub">Ready to track session duration</div>
+                <button type="button" id="laborClockToggleBtn" class="primary-btn labor-clock-btn" aria-label="Start Labor Clock">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  Start Labor Clock
+                </button>
+              </div>
+              <div class="labor-clock-hints">
+                <span class="hint-label">Vocal Protocols:</span>
+                <code>"[AI Name], Start Labor Clock"</code>
+                <code>"[AI Name], Stop Labor Clock"</code>
+                <code>"[AI Name], how long has the labor clock been going?"</code>
+              </div>
+            </div>
+
+            <!-- Completed Labor Sessions Log Widget -->
+            <div class="widget-card labor-log-card">
+              <div class="card-header">
+                <h3>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                  </svg>
+                  Completed Labor Sessions
+                </h3>
+                <button id="clearLaborLogBtn" class="mini-clear-btn" title="Purge session logs" aria-label="Clear session log">Clear</button>
+              </div>
+              <div class="labor-log-list" id="laborLogList">
+                <!-- Injected via LaborEngine -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Worker Status Roster & Add Worker Form -->
+          <div class="labor-col-right">
+            <div class="widget-card labor-workers-card">
+              <div class="card-header">
+                <h3>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                  Cleanroom Worker Status
+                </h3>
+                <span class="live-pill active" id="workerCountBadge">5 Workers</span>
+              </div>
+
+              <!-- Top Summary Banner -->
+              <div class="worker-summary-banner" id="workerSummaryBanner" aria-live="polite">
+                <!-- Dynamic Summary -->
+              </div>
+
+              <!-- Add Worker Form -->
+              <form id="addWorkerForm" class="add-worker-form" aria-label="Add New Personnel">
+                <div class="form-input-group">
+                  <input type="text" id="newWorkerName" class="form-input" placeholder="Technician Name (e.g. Maya Lin)" required aria-label="Worker Full Name" autocomplete="off" />
+                  <input type="text" id="newWorkerRole" class="form-input" placeholder="Role (e.g. Cleanroom Tech)" aria-label="Worker Role or Title" autocomplete="off" />
+                </div>
+                <button type="submit" class="primary-btn add-worker-btn" aria-label="Add Worker to Roster">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Add Worker
+                </button>
+              </form>
+
+              <!-- Worker List -->
+              <div class="worker-list" id="workerList" role="list">
+                <!-- Injected via LaborEngine -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Settings Modal -->
@@ -244,10 +386,13 @@
           <!-- Assistant Name Customization -->
           <div class="setting-section">
             <h3>Assistant Designation & Identity</h3>
-            <p class="section-desc">You may re-designate the Applied Materials AI system to any moniker (e.g. J.A.R.V.I.S., F.R.I.D.A.Y., E.D.I.T.H., or a name of your choice). You can also command me vocally: <em>"Change your name to..."</em></p>
+            <p class="section-desc">You may re-designate the Applied Materials AI system to any moniker (e.g.
+              Voxel, F.R.I.D.A.Y., E.D.I.T.H., or a name of your choice). You can also command me vocally:
+              <em>"Change your name to..."</em></p>
             <div class="form-row">
               <label for="assistantNameInput">Assistant Call-Sign / Name:</label>
-              <input type="text" id="assistantNameInput" class="form-input" value="J.A.R.V.I.S." placeholder="e.g. J.A.R.V.I.S.">
+              <input type="text" id="assistantNameInput" class="form-input" value="Voxel"
+                placeholder="e.g. Voxel">
             </div>
             <button id="saveAssistantNameBtn" class="primary-btn">Update Designation</button>
           </div>
@@ -258,7 +403,7 @@
             <div class="form-row">
               <label for="voiceGenderSelect">Vocal Profile:</label>
               <select id="voiceGenderSelect" class="form-select">
-                <option value="male" selected>👨 Male Vocal Profile (J.A.R.V.I.S. Standard)</option>
+                <option value="male" selected>👨 Male Vocal Profile (Voxel Standard)</option>
                 <option value="female">👩 Female Vocal Profile (F.R.I.D.A.Y. Standard)</option>
                 <option value="all">🌐 All System Voices</option>
               </select>
@@ -298,7 +443,8 @@
             </div>
             <div class="form-row checkbox-row">
               <input type="checkbox" id="continuousMicCheck">
-              <label for="continuousMicCheck">Continuous Acoustic Monitoring (Keeps sensors active between phrases)</label>
+              <label for="continuousMicCheck">Continuous Acoustic Monitoring (Keeps sensors active between
+                phrases)</label>
             </div>
             <div class="form-row checkbox-row">
               <input type="checkbox" id="soundEffectsCheck" checked>
@@ -310,9 +456,11 @@
           <div class="setting-section gemini-setting-card">
             <h3>⚡ Google Gemini AI Neural Uplink</h3>
             <p class="section-desc">
-              Connect your Google Gemini API Key to enable J.A.R.V.I.S. to answer any question across the entirety of science, technology, mathematics, Applied Materials semiconductor physics, or general knowledge.
+              Connect your Google Gemini API Key to enable Voxel to answer any question across the entirety of
+              science, technology, mathematics, Applied Materials semiconductor physics, or general knowledge.
               <br>
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="link-highlight">
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer"
+                class="link-highlight">
                 Get a free Google Gemini API key at Google AI Studio &rarr;
               </a>
             </p>
@@ -320,7 +468,8 @@
               <label for="geminiApiKey">Gemini API Key:</label>
               <div class="api-key-group">
                 <input type="password" id="geminiApiKey" class="form-input" placeholder="AIzaSy..." autocomplete="off">
-                <button type="button" id="toggleApiKeyVisBtn" class="secondary-btn icon-only" title="Show or Hide API Key">
+                <button type="button" id="toggleApiKeyVisBtn" class="secondary-btn icon-only"
+                  title="Show or Hide API Key">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
@@ -352,18 +501,19 @@
     <div class="modal-overlay" id="helpModal" aria-hidden="true">
       <div class="modal-window">
         <div class="modal-header">
-          <h2>🎙️ J.A.R.V.I.S. Command Protocols</h2>
+          <h2>🎙️ Voxel Command Protocols</h2>
           <button class="modal-close-btn" id="closeHelpBtn">&times;</button>
         </div>
         <div class="modal-body">
-          <p class="intro-p">Engage acoustic sensors by clicking the <strong>Arc Reactor icon</strong> or holding the <strong>Spacebar</strong>. You may also enter commands directly in the console.</p>
-          
+          <p class="intro-p">Engage acoustic sensors by clicking the <strong>Arc Reactor icon</strong> or holding the
+            <strong>Spacebar</strong>. You may also enter commands directly in the console.</p>
+
           <div class="help-grid">
             <div class="help-card">
               <h4>🏷️ Designation & Renaming</h4>
               <ul>
                 <li>"Change your name to F.R.I.D.A.Y."</li>
-                <li>"Call yourself J.A.R.V.I.S."</li>
+                <li>"Call yourself Voxel"</li>
                 <li>"Rename yourself to [Custom Name]"</li>
               </ul>
             </div>
@@ -374,6 +524,16 @@
                 <li>"Timer for 5 minutes"</li>
                 <li>"Acknowledge" or "Stop alarm"</li>
                 <li>"Cancel all timers"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>📊 Cleanroom Labor & Labor Clock</h4>
+              <ul>
+                <li>"Voxel, Start Labor Clock"</li>
+                <li>"Voxel, Stop Labor Clock"</li>
+                <li>"Voxel, how long has the labor clock been going?"</li>
+                <li>"Voxel, open Manage Labor"</li>
+                <li>"Voxel, go back"</li>
               </ul>
             </div>
             <div class="help-card">
@@ -419,8 +579,10 @@
 
   <!-- Scripts -->
   <script src="js/speech.js"></script>
+  <script src="js/labor.js"></script>
   <script src="js/commands.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>
