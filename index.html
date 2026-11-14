@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoxAI - Intelligent Voice & Text Assistant</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-logo">
+          <div class="ai-orb" id="aiOrb">
+            <span class="orb-core"></span>
+            <span class="orb-glow"></span>
+          </div>
+          <div class="brand-text">
+            <h1>VoxAI <span class="badge">Voice & Text Engine</span></h1>
+            <p class="status-indicator" id="systemStatus">
+              <span class="status-dot"></span>
+              <span class="status-text">System Ready</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- Visualizer Bar -->
+        <div class="visualizer-container" id="visualizerContainer">
+          <canvas id="waveformCanvas" width="280" height="40"></canvas>
+          <span class="visualizer-hint" id="visualizerHint">Audio Engine Idle</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Theme Selector -->
+        <div class="control-group">
+          <label for="themeSelect" class="icon-btn" title="Change Theme">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+          </label>
+          <select id="themeSelect" class="theme-dropdown" title="Select Theme">
+            <option value="midnight">Midnight (Default)</option>
+            <option value="cyberpunk">Cyber Neon</option>
+            <option value="emerald">Emerald Matrix</option>
+            <option value="sunset">Sunset Glow</option>
+            <option value="light">Crisp Light</option>
+          </select>
+        </div>
+
+        <!-- Voice Output Toggle -->
+        <button id="ttsToggleBtn" class="action-btn active" title="Toggle AI Voice Response (Text-to-Speech)">
+          <svg class="icon-speaker" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path class="sound-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <span class="btn-label">Voice: ON</span>
+        </button>
+
+        <!-- Command Cheatsheet / Info Modal Button -->
+        <button id="helpModalBtn" class="action-btn icon-only" title="Voice Commands Guide">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+
+        <!-- Settings Modal Button -->
+        <button id="settingsModalBtn" class="action-btn icon-only" title="Audio & API Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Chat & Conversation Feed -->
+      <section class="chat-section">
+        <div class="chat-header-bar">
+          <div class="chat-title">
+            <span class="dot"></span>
+            <h2>Session Transcript</h2>
+          </div>
+          <div class="chat-actions">
+            <button id="clearChatBtn" class="ghost-btn" title="Clear conversation log">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Clear
+            </button>
+            <button id="exportChatBtn" class="ghost-btn" title="Export transcript as text">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div class="chat-messages" id="chatMessages">
+          <!-- Welcome message is injected via JS -->
+        </div>
+
+        <!-- Live Speech Recognition Interim Preview Toast -->
+        <div class="speech-interim-box" id="interimBox">
+          <div class="speech-pulse-ring"></div>
+          <span class="interim-label">Listening:</span>
+          <span class="interim-text" id="interimText">"Say something..."</span>
+        </div>
+
+        <!-- Quick Voice Command Suggestions -->
+        <div class="quick-chips-container">
+          <span class="chips-title">Quick Try:</span>
+          <div class="chips-scroller">
+            <button class="chip-btn" data-command="Set timer for 45 seconds">⏱️ Set timer for 45s</button>
+            <button class="chip-btn" data-command="Change theme to Cyberpunk">🎨 Change theme to Cyberpunk</button>
+            <button class="chip-btn" data-command="Take note: Finish Hackathon project demo">📝 Take note: Project demo</button>
+            <button class="chip-btn" data-command="Calculate 15% tip on 84 dollars">🧮 15% tip on $84</button>
+            <button class="chip-btn" data-command="Tell me a joke">😂 Tell me a joke</button>
+            <button class="chip-btn" data-command="What time and date is it?">🕒 Current time & date</button>
+            <button class="chip-btn" data-command="Search for Web Speech API documentation">🔍 Search docs</button>
+          </div>
+        </div>
+
+        <!-- Unified Input Bar (Text + Voice) -->
+        <div class="input-container">
+          <form id="inputForm" class="input-form">
+            <!-- Voice Recognition Microphone Button -->
+            <button type="button" id="micBtn" class="mic-button" title="Speak to AI (Click to Start / Stop Voice)">
+              <div class="mic-ripple"></div>
+              <div class="mic-inner">
+                <svg class="mic-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </div>
+            </button>
+
+            <!-- Text Input Area -->
+            <div class="input-text-wrapper">
+              <input 
+                type="text" 
+                id="textInput" 
+                class="text-input" 
+                placeholder="Type a message or click mic to speak commands..." 
+                autocomplete="off"
+              />
+              <span class="shortcut-hint">Press ↵ Send • Space to talk</span>
+            </div>
+
+            <!-- Send Button -->
+            <button type="submit" id="sendBtn" class="send-button" title="Send Message">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
+
+          <div class="input-footer">
+            <span class="mic-status-label" id="micStatusLabel">Microphone ready. Click mic or type commands.</span>
+            <span class="model-badge" id="modeBadge">Engine: Built-in Smart Command Agent</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive Command & Action Widgets Sidebar -->
+      <aside class="action-sidebar">
+        <!-- Live Visual Voice Card -->
+        <div class="widget-card voice-visual-card">
+          <div class="card-header">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              </svg>
+              Live Audio Reactive Stream
+            </h3>
+            <span class="live-pill" id="liveAudioPill">IDLE</span>
+          </div>
+          <div class="canvas-visual-box">
+            <canvas id="liveBarsCanvas" width="280" height="70"></canvas>
+            <div class="visual-meta">
+              <span id="speechConfidence">Confidence: --</span>
+              <span id="speechDuration">Duration: 00:00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Timers Widget -->
+        <div class="widget-card timers-widget">
+          <div class="card-header">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Active Voice Timers (<span id="timerCount">0</span>)
+            </h3>
+            <button id="addQuickTimerBtn" class="mini-add-btn" title="Add 1m timer">+1m</button>
+          </div>
+          <div class="timers-list" id="timersList">
+            <div class="empty-state" id="emptyTimers">
+              <p>No active timers.</p>
+              <small>Try saying: <em>"Set timer for 2 minutes"</em></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky Notes & Voice Memo Pad -->
+        <div class="widget-card notes-widget">
+          <div class="card-header">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              Voice Notes & Tasks (<span id="notesCount">0</span>)
+            </h3>
+            <button id="clearNotesBtn" class="mini-clear-btn" title="Clear all notes">Clear</button>
+          </div>
+          <div class="notes-list" id="notesList">
+            <div class="empty-state" id="emptyNotes">
+              <p>No notes saved yet.</p>
+              <small>Try saying: <em>"Note: Buy coffee beans"</em></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Command Reference Accordion -->
+        <div class="widget-card cheat-widget">
+          <div class="card-header">
+            <h3>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Supported Voice Commands
+            </h3>
+          </div>
+          <div class="command-categories">
+            <div class="cmd-pill-row">
+              <span class="cmd-badge">⏱️ Timer</span>
+              <span class="cmd-example">"Set timer for [X] seconds/minutes"</span>
+            </div>
+            <div class="cmd-pill-row">
+              <span class="cmd-badge">🎨 Theme</span>
+              <span class="cmd-example">"Change theme to cyberpunk / sunset / emerald / light"</span>
+            </div>
+            <div class="cmd-pill-row">
+              <span class="cmd-badge">📝 Notes</span>
+              <span class="cmd-example">"Note [text]" or "Add task [text]"</span>
+            </div>
+            <div class="cmd-pill-row">
+              <span class="cmd-badge">🧮 Math</span>
+              <span class="cmd-example">"Calculate 25 * 14" or "What is 20% of 150"</span>
+            </div>
+            <div class="cmd-pill-row">
+              <span class="cmd-badge">🌐 Search</span>
+              <span class="cmd-example">"Search for [query]" or "Open Google / YouTube"</span>
+            </div>
+            <div class="cmd-pill-row">
+              <span class="cmd-badge">🔊 Audio</span>
+              <span class="cmd-example">"Mute voice", "Stop talking", "Play sound"</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" aria-hidden="true">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2>Audio & Engine Settings</h2>
+          <button class="modal-close-btn" id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- Voice Synthesis Settings -->
+          <div class="setting-section">
+            <h3>Voice Output (Text-to-Speech)</h3>
+            <div class="form-row">
+              <label for="voiceSelect">AI Voice:</label>
+              <select id="voiceSelect" class="form-select">
+                <option value="">Default System Voice</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="voiceRate">Speech Speed: <span id="rateValue">1.0x</span></label>
+              <input type="range" id="voiceRate" min="0.5" max="2.0" step="0.1" value="1.0" class="form-range">
+            </div>
+            <div class="form-row">
+              <label for="voicePitch">Pitch: <span id="pitchValue">1.0</span></label>
+              <input type="range" id="voicePitch" min="0.5" max="1.5" step="0.1" value="1.0" class="form-range">
+            </div>
+            <button id="testVoiceBtn" class="secondary-btn">Test Current Voice</button>
+          </div>
+
+          <!-- Speech Recognition Settings -->
+          <div class="setting-section">
+            <h3>Voice Input (Speech-to-Text)</h3>
+            <div class="form-row">
+              <label for="langSelect">Recognition Language:</label>
+              <select id="langSelect" class="form-select">
+                <option value="en-US">English (United States)</option>
+                <option value="en-GB">English (United Kingdom)</option>
+                <option value="es-ES">Spanish (Spain)</option>
+                <option value="fr-FR">French (France)</option>
+                <option value="de-DE">German (Germany)</option>
+                <option value="ja-JP">Japanese (Japan)</option>
+                <option value="zh-CN">Chinese (Mandarin)</option>
+                <option value="hi-IN">Hindi (India)</option>
+              </select>
+            </div>
+            <div class="form-row checkbox-row">
+              <input type="checkbox" id="continuousMicCheck">
+              <label for="continuousMicCheck">Continuous Listening Mode (Keeps mic active after each sentence)</label>
+            </div>
+            <div class="form-row checkbox-row">
+              <input type="checkbox" id="soundEffectsCheck" checked>
+              <label for="soundEffectsCheck">Play Audio Beep/Chime on Mic Start & Timer Alert</label>
+            </div>
+          </div>
+
+          <!-- Optional Gemini API Key -->
+          <div class="setting-section">
+            <h3>Optional: Gemini AI Live Key</h3>
+            <p class="section-desc">By default, VoxAI uses a fast local rule & conversational engine. You can optionally paste a Google Gemini API Key for deep LLM understanding.</p>
+            <div class="form-row">
+              <label for="geminiApiKey">Gemini API Key (optional):</label>
+              <input type="password" id="geminiApiKey" class="form-input" placeholder="AIzaSy...">
+            </div>
+            <button id="saveApiKeyBtn" class="primary-btn">Save Key</button>
+            <button id="clearApiKeyBtn" class="ghost-btn">Clear Key</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commands Help Modal -->
+    <div class="modal-overlay" id="helpModal" aria-hidden="true">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2>🎙️ Voice Commands & Features</h2>
+          <button class="modal-close-btn" id="closeHelpBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="intro-p">You can speak by clicking the <strong>Microphone button</strong> or holding the <strong>Spacebar</strong>. You can also type any command or question in the input box.</p>
+          
+          <div class="help-grid">
+            <div class="help-card">
+              <h4>⏱️ Timers & Alarms</h4>
+              <ul>
+                <li>"Set a timer for 30 seconds"</li>
+                <li>"Timer for 5 minutes"</li>
+                <li>"Stop timer" or "Cancel timer"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🎨 UI Themes</h4>
+              <ul>
+                <li>"Change theme to Cyberpunk"</li>
+                <li>"Switch theme to Sunset"</li>
+                <li>"Set theme to Emerald"</li>
+                <li>"Theme Midnight" or "Theme Light"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>📝 Notes & Tasks</h4>
+              <ul>
+                <li>"Note: Prepare demo slides"</li>
+                <li>"Take a note: Buy milk"</li>
+                <li>"Add task: Refactor audio module"</li>
+                <li>"Clear all notes"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🧮 Math & Computations</h4>
+              <ul>
+                <li>"Calculate 45 times 12"</li>
+                <li>"What is 20% of 350?"</li>
+                <li>"What is 2 to the power of 8?"</li>
+                <li>"Square root of 144"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🌐 Search & Navigation</h4>
+              <ul>
+                <li>"Search for quantum computing"</li>
+                <li>"Google latest space discoveries"</li>
+                <li>"Open YouTube" or "Open GitHub"</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>🔊 Voice & Speech Controls</h4>
+              <ul>
+                <li>"Stop talking" (Interrupts speech)</li>
+                <li>"Mute voice" / "Unmute voice"</li>
+                <li>"Clear chat" (Resets conversation)</li>
+              </ul>
+            </div>
+            <div class="help-card">
+              <h4>💡 Assistant & Fun</h4>
+              <ul>
+                <li>"Tell me a joke"</li>
+                <li>"Tell me a fun fact"</li>
+                <li>"Give me an inspirational quote"</li>
+                <li>"What time is it?" / "What is the date?"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Tone Synthesizer & Alarm (via Web Audio API) -->
+  <audio id="alarmAudio" preload="auto"></audio>
+
+  <!-- Scripts -->
+  <script src="js/speech.js"></script>
+  <script src="js/commands.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
