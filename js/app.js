@@ -31,6 +31,17 @@ document.addEventListener('DOMContentLoaded', () => {
       el.textContent = `${cleanName} (Applied Materials)`;
     });
 
+    // Update HUD & sensor status text
+    const sysStatus = document.getElementById('systemStatus');
+    if (sysStatus) {
+      const statusText = sysStatus.querySelector('.status-text');
+      if (statusText) statusText.textContent = `Standing by • Call "${cleanName}"`;
+    }
+    const micLabel = document.getElementById('micStatusLabel');
+    if (micLabel && window.speechEngine && window.speechEngine.isListening) {
+      micLabel.textContent = `Acoustic sensors active. Always listening for "${cleanName}"...`;
+    }
+
     return cleanName;
   };
 
@@ -49,18 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearChatBtn = document.getElementById('clearChatBtn');
   const exportChatBtn = document.getElementById('exportChatBtn');
   const themeSelect = document.getElementById('themeSelect');
-  const quickChips = document.querySelectorAll('.chip-btn');
   const modeBadge = document.getElementById('modeBadge');
 
-  // Gemini UI elements
+  // Gemini Header / Modal Link
   const geminiCoreBtn = document.getElementById('geminiCoreBtn');
-  const geminiCorePill = document.getElementById('geminiCorePill');
   const geminiApiKey = document.getElementById('geminiApiKey');
-  const geminiModelSelect = document.getElementById('geminiModelSelect');
-  const toggleApiKeyVisBtn = document.getElementById('toggleApiKeyVisBtn');
-  const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-  const clearApiKeyBtn = document.getElementById('clearApiKeyBtn');
-  const geminiVerifyStatus = document.getElementById('geminiVerifyStatus');
 
   // Modals
   const settingsModal = document.getElementById('settingsModal');
@@ -122,41 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sync Gemini key and model settings
-  if (geminiApiKey) {
-    geminiApiKey.value = window.aiEngine.getApiKey();
-  }
-  if (geminiModelSelect) {
-    geminiModelSelect.value = window.aiEngine.getModel();
-    geminiModelSelect.addEventListener('change', (e) => {
-      window.aiEngine.setModel(e.target.value);
-      updateModeBadge();
-    });
-  }
-
-  function updateModeBadge() {
-    const hasKey = window.aiEngine.hasApiKey();
-    const model = window.aiEngine.getModel();
-
-    if (hasKey) {
-      modeBadge.textContent = `Protocol: Google Gemini Cloud (${model}) Active`;
-      modeBadge.style.color = '#00f0ff';
-      if (geminiCorePill) {
-        geminiCorePill.className = 'core-pill online';
-        geminiCorePill.textContent = `🟢 Gemini: ${model}`;
-      }
-    } else {
-      modeBadge.textContent = 'Protocol: Applied Materials Core Intelligence';
-      modeBadge.style.color = 'var(--accent-primary)';
-      if (geminiCorePill) {
-        geminiCorePill.className = 'core-pill offline';
-        geminiCorePill.textContent = '⚡ Connect Gemini Key';
-      }
-    }
-  }
-
-  updateModeBadge();
-
   // Assistant Name Input Handlers
   if (saveAssistantNameBtn && assistantNameInput) {
     saveAssistantNameBtn.addEventListener('click', () => {
@@ -185,84 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Toggle API Key visibility
-  if (toggleApiKeyVisBtn && geminiApiKey) {
-    toggleApiKeyVisBtn.addEventListener('click', () => {
-      if (geminiApiKey.type === 'password') {
-        geminiApiKey.type = 'text';
-        toggleApiKeyVisBtn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-            <line x1="1" y1="1" x2="23" y2="23"></line>
-          </svg>`;
-      } else {
-        geminiApiKey.type = 'password';
-        toggleApiKeyVisBtn.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-          </svg>`;
-      }
-    });
-  }
-
-  // Gemini Save & Verify Key Handler
-  if (saveApiKeyBtn && geminiApiKey) {
-    saveApiKeyBtn.addEventListener('click', async () => {
-      const keyVal = geminiApiKey.value.trim();
-      const modelVal = geminiModelSelect ? geminiModelSelect.value : 'gemini-1.5-flash';
-
-      if (!keyVal) {
-        showVerifyStatus('Please enter a valid Google Gemini API Key, sir.', 'error');
-        return;
-      }
-
-      showVerifyStatus('Testing neural uplink to Google Gemini...', 'pending');
-      saveApiKeyBtn.disabled = true;
-
-      try {
-        const testResult = await window.aiEngine.testConnection(keyVal, modelVal);
-
-        if (testResult.success) {
-          window.aiEngine.setApiKey(keyVal);
-          window.aiEngine.setModel(modelVal);
-          updateModeBadge();
-          showVerifyStatus(`✓ Uplink Established! Model: ${modelVal} ready.`, 'success');
-          window.speechEngine.playChime('start');
-          window.speechEngine.speak(`Neural uplink to Google Gemini established, sir. Cognitive core is fully operational.`);
-        } else {
-          showVerifyStatus(`⚠️ Verification failed: ${testResult.error}`, 'error');
-        }
-      } catch (err) {
-        showVerifyStatus(`⚠️ Connection error: ${err.message}`, 'error');
-      } finally {
-        saveApiKeyBtn.disabled = false;
-      }
-    });
-  }
-
-  // Gemini Clear Key Handler
-  if (clearApiKeyBtn && geminiApiKey) {
-    clearApiKeyBtn.addEventListener('click', () => {
-      geminiApiKey.value = '';
-      window.aiEngine.setApiKey('');
-      updateModeBadge();
-      showVerifyStatus('Key purged. Returned to Applied Materials local intelligence core.', 'pending');
-    });
-  }
-
-  function showVerifyStatus(msg, type) {
-    if (!geminiVerifyStatus) return;
-    geminiVerifyStatus.className = `verify-status active ${type}`;
-    geminiVerifyStatus.textContent = msg;
-  }
-
   /* --------------------------------------------------------------------------
      2. WELCOME PROTOCOL INJECTION (J.A.R.V.I.S. CADENCE)
      -------------------------------------------------------------------------- */
   function injectWelcomeMessage() {
     const name = window.getAssistantName();
-    const hasKey = window.aiEngine.hasApiKey();
+    const hasKey = window.GeminiAI ? window.GeminiAI.isConnected() : false;
 
     const welcomeHtml = `
       <div class="message-row ai">
@@ -277,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             All wafer fabrication matrices, vacuum chambers, and acoustic sensors are calibrated and standing by.
           </p>
           <ul style="padding-left: 1.25rem; margin: 0.5rem 0; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.25rem;">
-            <li>🎙️ <strong>Acoustic Protocol:</strong> Click the Arc Reactor icon or hold <code>Spacebar</code> to give verbal commands.</li>
+            <li>🎙️ <strong>Always-Listening Sensor:</strong> Say my designation aloud (e.g. <em>"${escapeHtml(name)}, what is the cleanroom status?"</em>) to issue directives hands-free.</li>
             <li>⌨️ <strong>Terminal Console:</strong> Enter any inquiry or directive into the prompt bar below.</li>
             <li>⚡ <strong>Google Gemini Neural Core:</strong> ${hasKey ? '<strong style="color:#00f0ff">Online & Ready to answer any question</strong>.' : 'Connect your Gemini API Key in the top header to answer any question across science, coding, and materials physics.'}</li>
             <li>🏷️ <strong>Custom Designation:</strong> Command me <em>"Change your name to [Name]"</em> or adjust it in System Protocols (⚙️).</li>
@@ -302,20 +199,77 @@ document.addEventListener('DOMContentLoaded', () => {
   injectWelcomeMessage();
 
   /* --------------------------------------------------------------------------
-     3. SPEECH SENSOR EVENTS
+     3. SPEECH SENSOR EVENTS & DYNAMIC WAKE-WORD SYSTEM
      -------------------------------------------------------------------------- */
   const speechEngine = window.speechEngine;
+  let userIsTyping = false;
+  let awaitingDirectiveUntil = 0;
+  let isWakeWordLocked = false;
+
+  // Track manual typing in textInput to avoid overwriting operator input
+  textInput.addEventListener('focus', () => { userIsTyping = true; });
+  textInput.addEventListener('blur', () => {
+    if (!textInput.value.trim()) userIsTyping = false;
+  });
+  textInput.addEventListener('input', () => {
+    userIsTyping = !!textInput.value.trim();
+  });
+
+  /**
+   * Checks whether a transcript contains the assistant's current designated name,
+   * handling punctuation, spacing, letter spacing (J.A.R.V.I.S. vs Jarvis),
+   * conversational prefixes ("hey", "ok", "hello"), and extracts the directive.
+   */
+  function parseWakeWord(transcript) {
+    if (!transcript || typeof transcript !== 'string') return null;
+
+    const rawName = (window.getAssistantName ? window.getAssistantName() : 'J.A.R.V.I.S.').trim();
+    const cleanName = rawName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    if (!cleanName) return null;
+
+    // Pattern for matching: supports clean word (e.g. "jarvis", "friday") or spaced letters (e.g. "j a r v i s")
+    const spacedLetters = cleanName.split('').join('[\\s\\.]*');
+    const escapedClean = cleanName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const namePattern = `(?:${escapedClean}|${spacedLetters})`;
+
+    // Match wake word at start or with conversational prefix ("hey", "hi", "ok", "okay", "hello")
+    const prefixWakeRegex = new RegExp(`(?:^|\\b)(?:hey|hi|hello|ok|okay)\\s+${namePattern}\\b`, 'i');
+    const directWakeRegex = new RegExp(`(?:^|\\b)${namePattern}\\b`, 'i');
+
+    const lowerTranscript = transcript.toLowerCase();
+    const match = lowerTranscript.match(prefixWakeRegex) || lowerTranscript.match(directWakeRegex);
+
+    if (!match) {
+      return null;
+    }
+
+    const matchStart = match.index;
+    const matchEnd = match.index + match[0].length;
+
+    let after = transcript.substring(matchEnd).trim();
+    let before = transcript.substring(0, matchStart).trim();
+
+    after = after.replace(/^[,\s:\.\-!\?]+/, '').replace(/[,\s:\.\-!\?]+$/, '').trim();
+    before = before.replace(/^[,\s:\.\-!\?]+/, '').replace(/[,\s:\.\-!\?]+$/, '').trim();
+
+    const directive = after || before || '';
+
+    return {
+      wakeWordDetected: true,
+      matchedName: match[0],
+      directive: directive
+    };
+  }
 
   speechEngine.onStartCallback = () => {
     micBtn.classList.add('active');
     aiOrb.className = 'ai-orb listening';
     systemStatus.className = 'status-indicator listening';
-    systemStatus.querySelector('.status-text').textContent = 'Acoustic Sensors Active...';
-    micStatusLabel.textContent = 'Listening to speech telemetry... Speak into microphone';
+    const name = window.getAssistantName();
+    systemStatus.querySelector('.status-text').textContent = `Standing by • Call "${name}"`;
+    micStatusLabel.textContent = `Acoustic sensors active. Always listening for "${name}"...`;
     liveAudioPill.className = 'live-pill active';
-    liveAudioPill.textContent = 'TRANSMITTING';
-    interimBox.classList.add('active');
-    interimText.textContent = 'Awaiting vocal stream...';
+    liveAudioPill.textContent = 'LISTENING';
 
     listeningStartTime = Date.now();
     clearInterval(listeningDurationTimer);
@@ -328,20 +282,100 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   speechEngine.onInterimCallback = (interim) => {
-    if (interimText) {
-      interimText.textContent = `"${interim}"`;
+    if (isAiSpeaking) return;
+
+    const isUnlocked = Date.now() < awaitingDirectiveUntil;
+    const parsed = parseWakeWord(interim);
+
+    if (parsed && parsed.wakeWordDetected) {
+      if (!isWakeWordLocked) {
+        isWakeWordLocked = true;
+        speechEngine.playChime('activation');
+      }
+
+      if (parsed.directive) {
+        if (!userIsTyping) {
+          textInput.value = parsed.directive;
+        }
+        interimBox.classList.add('active');
+        interimText.textContent = `Directive: "${parsed.directive}"`;
+      } else {
+        if (!userIsTyping) {
+          textInput.value = '';
+        }
+        interimBox.classList.add('active');
+        interimText.textContent = `Awaiting directive for ${window.getAssistantName()}...`;
+      }
+
+      systemStatus.querySelector('.status-text').textContent = `${window.getAssistantName()} Active • Capturing Directive...`;
+    } else if (isUnlocked && interim.trim()) {
+      if (!userIsTyping) {
+        textInput.value = interim.trim();
+      }
+      interimBox.classList.add('active');
+      interimText.textContent = `Directive: "${interim.trim()}"`;
+      systemStatus.querySelector('.status-text').textContent = `${window.getAssistantName()} Listening...`;
+    } else {
+      // Background conversation without wake word: DO NOT type into the prompt box
+      if (!userIsTyping) {
+        textInput.value = '';
+      }
+      interimBox.classList.remove('active');
+      const name = window.getAssistantName();
+      systemStatus.querySelector('.status-text').textContent = `Standing by • Call "${name}"`;
     }
   };
 
   speechEngine.onResultCallback = (finalTranscript, confidence) => {
+    if (isAiSpeaking) return;
+
     if (speechConfidence) {
       speechConfidence.textContent = `Signal: ${(confidence * 100).toFixed(0)}% Nominal`;
     }
+
+    const isUnlocked = Date.now() < awaitingDirectiveUntil;
+    const parsed = parseWakeWord(finalTranscript);
+
+    isWakeWordLocked = false;
     interimBox.classList.remove('active');
-    handleUserInput(finalTranscript, 'voice');
+
+    if (parsed && parsed.wakeWordDetected) {
+      if (parsed.directive) {
+        awaitingDirectiveUntil = 0;
+        const directiveText = parsed.directive;
+        textInput.value = '';
+        userIsTyping = false;
+        handleUserInput(directiveText, 'voice');
+      } else {
+        // User only invoked the assistant's name (e.g. "Jarvis" or "Hey Jarvis")
+        awaitingDirectiveUntil = Date.now() + 10000;
+        textInput.value = '';
+        userIsTyping = false;
+        const name = window.getAssistantName();
+        const ackReply = `At your service, sir. Standing by for directives.`;
+        appendAiMessage(ackReply, `🤖 ${name} Standing By`);
+        speechEngine.speak(ackReply);
+        systemStatus.querySelector('.status-text').textContent = `Listening for directive, sir...`;
+        micStatusLabel.textContent = `Awaiting your directive, sir... (10s window)`;
+      }
+    } else if (isUnlocked && finalTranscript.trim()) {
+      awaitingDirectiveUntil = 0;
+      const directiveText = finalTranscript.trim();
+      textInput.value = '';
+      userIsTyping = false;
+      handleUserInput(directiveText, 'voice');
+    } else {
+      // Speech did not contain the assistant's name: discard silently
+      if (!userIsTyping) {
+        textInput.value = '';
+      }
+    }
   };
 
   speechEngine.onErrorCallback = (error) => {
+    if (error === 'no-speech' || error === 'aborted') {
+      return; // Harmless ambient events during continuous background listening
+    }
     micBtn.classList.remove('active');
     aiOrb.className = 'ai-orb';
     systemStatus.className = 'status-indicator';
@@ -354,12 +388,12 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   speechEngine.onEndCallback = () => {
-    if (!speechEngine.continuousMode) {
+    if (!speechEngine.continuousMode || speechEngine.manualStop) {
       micBtn.classList.remove('active');
       aiOrb.className = 'ai-orb';
       systemStatus.className = 'status-indicator';
-      systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
-      micStatusLabel.textContent = 'Acoustic sensors calibrated. Click mic or type commands.';
+      systemStatus.querySelector('.status-text').textContent = 'Sensor Standby';
+      micStatusLabel.textContent = 'Acoustic sensors paused. Click mic to engage always-listening.';
       liveAudioPill.className = 'live-pill';
       liveAudioPill.textContent = 'STANDBY';
       interimBox.classList.remove('active');
@@ -372,11 +406,20 @@ document.addEventListener('DOMContentLoaded', () => {
     aiOrb.className = 'ai-orb speaking';
     systemStatus.className = 'status-indicator speaking';
     systemStatus.querySelector('.status-text').textContent = `${window.getAssistantName()} Vocalizing...`;
+    micStatusLabel.textContent = `${window.getAssistantName()} is speaking...`;
   };
 
   speechEngine.onSpeechEndCallback = () => {
     isAiSpeaking = false;
-    if (!speechEngine.isListening) {
+    if (speechEngine.isListening) {
+      aiOrb.className = 'ai-orb listening';
+      systemStatus.className = 'status-indicator listening';
+      const name = window.getAssistantName();
+      systemStatus.querySelector('.status-text').textContent = `Standing by • Call "${name}"`;
+      micStatusLabel.textContent = `Acoustic sensors active. Always listening for "${name}"...`;
+      liveAudioPill.className = 'live-pill active';
+      liveAudioPill.textContent = 'LISTENING';
+    } else {
       aiOrb.className = 'ai-orb';
       systemStatus.className = 'status-indicator';
       systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
@@ -415,34 +458,43 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleUserInput(text, inputType = 'text') {
     if (!text.trim()) return;
 
-    // 1. Render User message in feed
+    // 1. Show user message in chat
     appendUserMessage(text, inputType);
 
-    // 2. Set system to processing
-    aiOrb.className = 'ai-orb';
-    systemStatus.querySelector('.status-text').textContent = 'Consulting neural matrices, sir...';
-
-    // 3. Test actionable command engine first (timers, notes, theme changes, identity)
+    // 2. Try the local command handler first (timers, themes, notes, calculations, rename)
     const commandResult = window.commandEngine.process(text);
 
     if (commandResult && commandResult.handled) {
-      setTimeout(() => {
-        appendAiMessage(commandResult.responseText, commandResult.actionTag);
-        systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
-        speakText(commandResult.responseText);
-      }, 200);
+      appendAiMessage(commandResult.responseText, commandResult.actionTag);
+      systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
+      speechEngine.speak(commandResult.responseText);
       return;
     }
 
-    // 4. Fallback to Google Gemini AI Neural Core or intelligent heuristic
+    // 3. If local handler did NOT handle it, and Gemini is connected, call GeminiAI.ask
+    sendBtn.disabled = true;
+    aiOrb.className = 'ai-orb listening';
+    systemStatus.querySelector('.status-text').textContent = 'Consulting Gemini neural core, sir...';
+
     try {
-      const aiResult = await window.aiEngine.generateResponse(text);
-      appendAiMessage(aiResult.text, aiResult.actionTag || '⚡ Gemini Core', aiResult.needsApiKey);
-      systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
-      speakText(aiResult.text);
+      if (window.GeminiAI && window.GeminiAI.isConnected()) {
+        const assistantName = window.getAssistantName ? window.getAssistantName() : 'J.A.R.V.I.S.';
+        const reply = await window.GeminiAI.ask(text, assistantName);
+        appendAiMessage(reply, '⚡ Gemini AI');
+        speechEngine.speak(reply);
+      } else {
+        const notConnectedReply = 'Please connect a Gemini API key in Settings, sir.';
+        appendAiMessage(notConnectedReply, '⚠️ Key Required', true);
+        speechEngine.speak(notConnectedReply);
+      }
     } catch (err) {
-      console.error('AI telemetry error:', err);
-      appendAiMessage(`I processed your directive: "${text}". Standing by for further instructions, sir.`, '⚠️ System Telemetry');
+      const errMsg = `Neural uplink error: ${err.message || err}`;
+      appendAiMessage(errMsg, '⚠️ Uplink Error');
+      speechEngine.speak(errMsg);
+    } finally {
+      sendBtn.disabled = false;
+      aiOrb.className = 'ai-orb';
+      systemStatus.querySelector('.status-text').textContent = 'All Systems Nominal';
     }
   }
 
@@ -634,19 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* --------------------------------------------------------------------------
-     6. QUICK PROTOCOL CHIPS
-     -------------------------------------------------------------------------- */
-  quickChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      const cmd = chip.getAttribute('data-command');
-      if (cmd) {
-        handleUserInput(cmd, 'text');
-      }
-    });
-  });
-
-  /* --------------------------------------------------------------------------
-     7. VOCAL TOGGLE BUTTON
+     6. VOCAL TOGGLE BUTTON
      -------------------------------------------------------------------------- */
   ttsToggleBtn.addEventListener('click', () => {
     speechEngine.ttsEnabled = !speechEngine.ttsEnabled;
@@ -665,7 +705,9 @@ document.addEventListener('DOMContentLoaded', () => {
      -------------------------------------------------------------------------- */
   window.clearSessionChat = () => {
     chatMessages.innerHTML = '';
-    window.aiEngine.clearHistory();
+    if (window.GeminiAI && window.GeminiAI.clearHistory) {
+      window.GeminiAI.clearHistory();
+    }
     injectWelcomeMessage();
   };
 
@@ -809,8 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
   settingsModalBtn.addEventListener('click', () => {
     populateVoiceSelect();
     if (assistantNameInput) assistantNameInput.value = window.getAssistantName();
-    if (geminiApiKey) geminiApiKey.value = window.aiEngine.getApiKey();
-    if (geminiModelSelect) geminiModelSelect.value = window.aiEngine.getModel();
+    if (window.GeminiAI && window.GeminiAI.updatePill) window.GeminiAI.updatePill();
     openModal(settingsModal);
   });
   closeSettingsBtn.addEventListener('click', () => closeModal(settingsModal));
@@ -971,5 +1012,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /* --------------------------------------------------------------------------
+     12. ALWAYS-LISTENING INITIALIZATION (STANDBY FOR WAKE WORD)
+     -------------------------------------------------------------------------- */
+  function initAutoListening() {
+    if (!speechEngine.hasRecognition) {
+      if (micStatusLabel) {
+        micStatusLabel.textContent = 'Acoustic sensors unavailable in this browser. Use terminal text prompt.';
+      }
+      return;
+    }
+
+    speechEngine.continuousMode = true;
+    if (continuousMicCheck) continuousMicCheck.checked = true;
+
+    // Attempt direct start
+    speechEngine.startListening();
+
+    // Browser user-gesture fallback
+    const startOnUserGesture = () => {
+      if (!speechEngine.isListening && !speechEngine.manualStop) {
+        speechEngine.startListening();
+      }
+    };
+    document.addEventListener('click', startOnUserGesture, { once: true });
+    document.addEventListener('keydown', startOnUserGesture, { once: true });
+  }
+
+  initAutoListening();
   renderVisualizers();
 });

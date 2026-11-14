@@ -13,11 +13,13 @@ class SpeechEngine {
     // STT configuration
     this.recognition = this.hasRecognition ? new SpeechRecognition() : null;
     this.isListening = false;
-    this.continuousMode = false;
+    this.continuousMode = true; // Always listen in background for wake word
+    this.isSilentRestart = false;
     this.language = 'en-US';
 
     // TTS configuration
     this.ttsEnabled = true;
+    this.isSpeaking = false;
     this.selectedVoice = null;
     this.rate = 1.0;
     this.pitch = 1.0;
@@ -51,25 +53,34 @@ class SpeechEngine {
       return;
     }
 
-    this.recognition.continuous = false; // We manage flow per phrase for cleaner command evaluation
+    this.recognition.continuous = true; // Continuous listening across utterances
     this.recognition.interimResults = true;
     this.recognition.lang = this.language;
 
     this.recognition.onstart = () => {
       this.isListening = true;
-      this.playChime('start');
+      if (!this.isSilentRestart) {
+        this.playChime('start');
+      }
+      this.isSilentRestart = false;
       this.startMicStream();
       if (this.onStartCallback) this.onStartCallback();
     };
 
     this.recognition.onresult = (event) => {
+      // Discard audio picked up from device speakers while AI speaks
+      if (this.isSpeaking) return;
+
       let interimTranscript = '';
       let finalTranscript = '';
+      let confidence = 0.95;
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
+        const res = event.results[i];
+        const transcript = res[0].transcript;
+        if (res.isFinal) {
           finalTranscript += transcript;
+          confidence = res[0].confidence || confidence;
         } else {
           interimTranscript += transcript;
         }
@@ -80,12 +91,15 @@ class SpeechEngine {
       }
 
       if (finalTranscript && this.onResultCallback) {
-        const confidence = event.results[0][0].confidence || 0.95;
         this.onResultCallback(finalTranscript.trim(), confidence);
       }
     };
 
     this.recognition.onerror = (event) => {
+      // 'no-speech' and 'aborted' are benign during continuous background listening
+      if (event.error === 'no-speech' || event.error === 'aborted') {
+        return;
+      }
       console.warn('Speech recognition error:', event.error);
       this.isListening = false;
       this.stopMicStream();
@@ -99,11 +113,12 @@ class SpeechEngine {
 
       // Continuous mode restart if user enabled continuous listening
       if (this.continuousMode && !this.manualStop) {
+        this.isSilentRestart = true;
         setTimeout(() => {
           if (this.continuousMode && !this.isListening) {
             this.startListening();
           }
-        }, 300);
+        }, 150);
       }
     };
   }
@@ -146,7 +161,9 @@ class SpeechEngine {
       this.recognition.start();
       return true;
     } catch (e) {
-      console.warn('Recognition start caught error:', e);
+      if (e.name !== 'InvalidStateError') {
+        console.warn('Recognition start caught error:', e);
+      }
       return false;
     }
   }
@@ -212,16 +229,21 @@ class SpeechEngine {
     utterance.pitch = this.pitch;
 
     utterance.onstart = () => {
+      this.isSpeaking = true;
       if (this.onSpeechStartCallback) this.onSpeechStartCallback();
     };
 
     utterance.onend = () => {
+      setTimeout(() => {
+        this.isSpeaking = false;
+      }, 350);
       if (this.onSpeechEndCallback) this.onSpeechEndCallback();
       if (onComplete) onComplete();
     };
 
     utterance.onerror = (e) => {
       console.warn('Speech synthesis utterance error:', e);
+      this.isSpeaking = false;
       if (this.onSpeechEndCallback) this.onSpeechEndCallback();
       if (onComplete) onComplete();
     };
@@ -233,6 +255,7 @@ class SpeechEngine {
    * Stops ongoing speech synthesis
    */
   stopSpeaking() {
+    this.isSpeaking = false;
     if (this.hasSynthesis) {
       window.speechSynthesis.cancel();
       if (this.onSpeechEndCallback) this.onSpeechEndCallback();
@@ -275,6 +298,19 @@ class SpeechEngine {
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.16);
+      } else if (type === 'activation') {
+        // High-tech affirmative blip (Wake word locked)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.09, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.13);
       } else if (type === 'alarm') {
         // Repeated double chime for Timer alert
         const now = ctx.currentTime;

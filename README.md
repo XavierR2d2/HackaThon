@@ -2,7 +2,7 @@
 
 An interactive, holographic voice and text AI assistant built for **Applied Materials**, inspired by Tony Stark's **J.A.R.V.I.S.** from *Iron Man*, powered by **Google Gemini AI**.
 
-- **Google Gemini AI Integration (`gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-1.5-pro`)**: Endows J.A.R.V.I.S. with real-time generative intelligence to answer any question across science, physics, semiconductor engineering, programming, history, and general knowledge.
+- **Google Gemini AI Integration (`gemini-3.5`, `gemini-3.1`, `gemini-3.1-pro`, `gemini-4-hydrogen`, `gemini-4-argon`)**: Endows J.A.R.V.I.S. with real-time generative intelligence to answer any question across science, physics, semiconductor engineering, programming, history, and general knowledge.
 - **British Suave Demeanor & Cadence**: Speaks with Paul Bettany's dry wit, sophisticated decorum, and zero chatbot filler.
 - **Custom Designation (Editable Name)**: Easily re-designate the assistant to **J.A.R.V.I.S.**, **F.R.I.D.A.Y.**, **E.D.I.T.H.**, or any custom name via voice (*"Change your name to Friday"*) or the UI in **System Protocols (⚙️)**.
 - **Dual Modality (Type + Speak)**: Full Web Speech API integration (`SpeechRecognition` & `SpeechSynthesis`).
@@ -22,11 +22,13 @@ To allow J.A.R.V.I.S. to answer **any question** with Google's large language mo
    - Click the **"⚡ Connect Gemini Key"** pill in the top header (or open **System Protocols ⚙️**).
    - Paste your API key into the **Gemini API Key** field.
    - Choose your preferred model architecture:
-     - `gemini-1.5-flash` *(Ultra-Fast, recommended)*
-     - `gemini-2.0-flash` *(Next-Gen Speed)*
-     - `gemini-1.5-pro` *(Deep Multi-step Reasoning)*
+     - `gemini-3.5` *(Default, Fast)*
+     - `gemini-3.1`
+     - `gemini-3.1-pro` *(Deep Reasoning)*
+     - `gemini-4-hydrogen` *(Next-Gen High Performance)*
+     - `gemini-4-argon` *(Advanced Materials Core)*
    - Click **Connect & Verify Key**.
-   - The status indicator will turn green: `🟢 Gemini: Online (gemini-1.5-flash)`.
+   - The status indicator will turn green: `🟢 Gemini: Online`.
 3. **Ask Any Question**:
    - You can speak via microphone or type in the prompt box:
      - *"Explain how gate-all-around nanosheet transistors differ from FinFETs in semiconductor fabrication."*
