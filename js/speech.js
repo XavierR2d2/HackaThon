@@ -133,33 +133,89 @@ class SpeechEngine {
       return;
     }
 
-    // Restore saved pitch, rate, language from localStorage if present
+    // Restore saved pitch & rate from localStorage if present
     const savedRate = localStorage.getItem('amat_voice_rate');
     if (savedRate) this.rate = parseFloat(savedRate);
     const savedPitch = localStorage.getItem('amat_voice_pitch');
     if (savedPitch) this.pitch = parseFloat(savedPitch);
-    const savedLang = localStorage.getItem('amat_voice_lang');
-    if (savedLang && savedLang !== 'all') this.language = savedLang;
+
+    // Helper to filter out explicitly excluded voice engines
+    const isExcludedVoice = (v, gender) => {
+      if (!v || !v.name) return false;
+      const name = v.name.toLowerCase();
+      const lang = (v.lang || '').toLowerCase();
+
+      if (gender === 'female') {
+        // Exclude Microsoft Zira
+        if (name.includes('zira')) return true;
+      } else if (gender === 'male') {
+        // Exclude Microsoft David
+        if (name.includes('david')) return true;
+        // Exclude Google US English
+        if (name.includes('google us english') || (name.includes('google') && lang.includes('en-us') && !name.includes('uk') && !lang.includes('gb'))) return true;
+        // Exclude Microsoft - English (United States) (en-US)
+        if (name.includes('microsoft') && (lang.includes('en-us') || name.includes('united states') || name.includes('desktop'))) return true;
+      }
+      return false;
+    };
 
     const loadVoices = () => {
       this.availableVoices = window.speechSynthesis.getVoices();
+
+      // Check saved gender preference (male vs female)
+      const savedGender = localStorage.getItem('amat_voice_gender') || 'male';
+
+      // Check if a specific voice was saved by user and is not excluded
       const savedVoiceName = localStorage.getItem('amat_voice_name');
       if (savedVoiceName) {
-        const found = this.availableVoices.find(v => v.name === savedVoiceName);
+        const found = this.availableVoices.find(v => v.name === savedVoiceName && !isExcludedVoice(v, savedGender));
         if (found) {
           this.selectedVoice = found;
           return;
         }
       }
 
-      // Default: Prioritize British English (en-GB) voices for J.A.R.V.I.S. (Paul Bettany tone)
-      this.selectedVoice = this.availableVoices.find(v => 
+      if (savedGender === 'female') {
+        // Priority 1: Google UK English Female (en-GB)
+        const gUkFemale = this.availableVoices.find(v => 
+          !isExcludedVoice(v, 'female') &&
+          v.name.includes('Google') && (v.name.includes('UK') || v.lang.includes('GB')) &&
+          (v.name.includes('Female') || v.name.toLowerCase().includes('female'))
+        );
+        // Priority 2: Other British / en-GB female voices (Hazel, Susan, Victoria, etc., but never Zira)
+        const enGbFemale = this.availableVoices.find(v => 
+          !isExcludedVoice(v, 'female') &&
+          (v.lang === 'en-GB' || v.lang.startsWith('en-GB') || v.lang.startsWith('en-IE')) &&
+          (v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Susan') || v.name.includes('Victoria') || v.name.includes('Jenny') || v.name.includes('Aria'))
+        );
+        const fallbackFemale = this.availableVoices.find(v => !isExcludedVoice(v, 'female') && v.name.toLowerCase().includes('female'));
+
+        this.selectedVoice = gUkFemale || enGbFemale || fallbackFemale || this.availableVoices.find(v => !isExcludedVoice(v, 'female')) || this.availableVoices[0];
+        if (this.selectedVoice) {
+          localStorage.setItem('amat_voice_name', this.selectedVoice.name);
+        }
+        return;
+      }
+
+      // Default: Male voice
+      // Priority 1: Google UK English Male (en-GB)
+      const gUkMale = this.availableVoices.find(v => 
+        !isExcludedVoice(v, 'male') &&
+        v.name.includes('Google') && (v.name.includes('UK') || v.lang.includes('GB')) &&
+        (v.name.includes('Male') || v.name.toLowerCase().includes('male'))
+      );
+      // Priority 2: Other British en-GB male voices (George, Oliver, Arthur, Ryan - never David or Google US English)
+      const enGbMale = this.availableVoices.find(v => 
+        !isExcludedVoice(v, 'male') &&
         (v.lang === 'en-GB' || v.lang.startsWith('en-GB')) && 
-        (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur') || v.name.includes('Daniel') || v.name.includes('Ryan') || v.name.includes('Google UK English Male'))
-      ) || this.availableVoices.find(v => v.lang === 'en-GB' || v.lang.startsWith('en-GB'))
-        || this.availableVoices.find(v => v.name.includes('Natural') || v.name.includes('Guy'))
-        || this.availableVoices.find(v => v.lang.startsWith('en'))
-        || this.availableVoices[0];
+        (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur') || v.name.includes('Daniel') || v.name.includes('Ryan'))
+      );
+      const enGbAny = this.availableVoices.find(v => !isExcludedVoice(v, 'male') && (v.lang === 'en-GB' || v.lang.startsWith('en-GB')));
+
+      this.selectedVoice = gUkMale || enGbMale || enGbAny || this.availableVoices.find(v => !isExcludedVoice(v, 'male')) || this.availableVoices[0];
+      if (this.selectedVoice) {
+        localStorage.setItem('amat_voice_name', this.selectedVoice.name);
+      }
     };
 
     loadVoices();

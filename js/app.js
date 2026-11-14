@@ -77,9 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Settings form elements
   const assistantNameInput = document.getElementById('assistantNameInput');
   const saveAssistantNameBtn = document.getElementById('saveAssistantNameBtn');
-  const voicePresetSelect = document.getElementById('voicePresetSelect');
   const voiceGenderSelect = document.getElementById('voiceGenderSelect');
-  const voiceLangSelect = document.getElementById('voiceLangSelect');
   const voiceSelect = document.getElementById('voiceSelect');
   const voiceRate = document.getElementById('voiceRate');
   const rateValue = document.getElementById('rateValue');
@@ -885,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!voice) return 'neutral';
     const name = voice.name.toLowerCase();
     const femaleCues = [
-      'female', 'zira', 'hazel', 'susan', 'samantha', 'victoria', 'karen', 'catherine',
+      'female', 'hazel', 'susan', 'samantha', 'victoria', 'karen', 'catherine',
       'jenny', 'aria', 'ava', 'emma', 'sonia', 'julie', 'elena', 'anna', 'klara',
       'chiara', 'eva', 'fiona', 'moira', 'tessa', 'heera', 'natural (female)', 'cortana'
     ];
@@ -893,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (name.includes(cue)) return 'female';
     }
     const maleCues = [
-      'male', 'george', 'oliver', 'arthur', 'daniel', 'ryan', 'david', 'guy', 'mark',
+      'male', 'george', 'oliver', 'arthur', 'daniel', 'ryan', 'guy', 'mark',
       'james', 'richard', 'thomas', 'stefan', 'paul', 'ravi', 'hemant', 'alex', 'fred',
       'bruce', 'cosimo', 'luca', 'natural (male)', 'bettany'
     ];
@@ -903,52 +901,88 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'neutral';
   }
 
-  // Populate Voices in Settings with Gender & Language filters
+  // Explicit Exclusion Filter:
+  // - Female: Remove Microsoft Zira
+  // - Male: Remove Microsoft David (en-US), Microsoft - English (United States) (en-US), and Google US English (en-US)
+  function isExcludedVoice(voice, gender) {
+    if (!voice || !voice.name) return false;
+    const name = voice.name.toLowerCase();
+    const lang = (voice.lang || '').toLowerCase();
+
+    if (gender === 'female') {
+      // Exclude Microsoft Zira
+      if (name.includes('zira')) return true;
+    } else if (gender === 'male') {
+      // Exclude Microsoft David
+      if (name.includes('david')) return true;
+      // Exclude Google US English
+      if (name.includes('google us english') || (name.includes('google') && lang.includes('en-us') && !name.includes('uk') && !lang.includes('gb'))) return true;
+      // Exclude Microsoft - English (United States)
+      if (name.includes('microsoft') && (lang.includes('en-us') || name.includes('united states') || name.includes('desktop'))) return true;
+    }
+    return false;
+  }
+
+  // Priority scoring for UK English voices: Google UK English Male/Female at top
+  function scoreVoice(v, gender) {
+    const name = v.name.toLowerCase();
+    const lang = (v.lang || '').toLowerCase();
+
+    if (gender === 'female') {
+      // Google UK English Female is #1
+      if (name.includes('google') && (name.includes('uk') || lang.includes('gb')) && (name.includes('female') || getVoiceGender(v) === 'female')) return 100;
+      if (name.includes('google') && (name.includes('uk') || lang.includes('gb'))) return 90;
+      if (lang.includes('gb') || lang.includes('ie')) return 70;
+      return 10;
+    } else {
+      // Google UK English Male is #1
+      if (name.includes('google') && (name.includes('uk') || lang.includes('gb')) && (name.includes('male') || getVoiceGender(v) === 'male')) return 100;
+      if (name.includes('google') && (name.includes('uk') || lang.includes('gb'))) return 90;
+      if (lang.includes('gb') && (name.includes('male') || name.includes('george') || name.includes('oliver') || name.includes('arthur'))) return 80;
+      if (lang.includes('gb')) return 70;
+      return 10;
+    }
+  }
+
+  // Populate Voices in Settings with Male / Female / All filter
   function populateVoiceSelect() {
     if (!voiceSelect || !speechEngine.hasSynthesis) return;
     const voices = window.speechSynthesis.getVoices();
     if (!voices || voices.length === 0) return;
 
-    const genderFilter = voiceGenderSelect ? voiceGenderSelect.value : 'all';
-    const langFilter = voiceLangSelect ? voiceLangSelect.value : 'all';
+    const genderFilter = voiceGenderSelect ? voiceGenderSelect.value : (localStorage.getItem('amat_voice_gender') || 'male');
+    if (voiceGenderSelect) voiceGenderSelect.value = genderFilter;
 
     voiceSelect.innerHTML = '';
 
-    // Filter by language & gender
+    // Filter and sort voices
     let filtered = voices.filter(v => {
-      if (langFilter !== 'all') {
-        const vLang = v.lang.toLowerCase();
-        const fLang = langFilter.toLowerCase();
-        if (!vLang.startsWith(fLang) && !vLang.includes(fLang)) {
-          return false;
-        }
-      }
-      if (genderFilter !== 'all') {
-        const g = getVoiceGender(v);
-        if (g !== 'neutral' && g !== genderFilter) {
-          return false;
-        }
+      if (isExcludedVoice(v, genderFilter)) return false;
+      if (genderFilter === 'female') {
+        return getVoiceGender(v) === 'female';
+      } else if (genderFilter === 'male') {
+        return getVoiceGender(v) === 'male' || (getVoiceGender(v) !== 'female' && v.lang.startsWith('en'));
       }
       return true;
     });
 
     if (filtered.length === 0) {
-      filtered = voices.filter(v => {
-        if (langFilter !== 'all') {
-          return v.lang.toLowerCase().startsWith(langFilter.toLowerCase());
-        }
-        return true;
-      });
+      filtered = voices.filter(v => !isExcludedVoice(v, genderFilter));
       if (filtered.length === 0) filtered = voices;
     }
+
+    // Sort to prioritize Google UK English Female/Male at top
+    filtered.sort((a, b) => scoreVoice(b, genderFilter) - scoreVoice(a, genderFilter));
 
     filtered.forEach(v => {
       const opt = document.createElement('option');
       opt.value = v.name;
       const g = getVoiceGender(v);
+      const isGoogleUk = v.name.includes('Google') && (v.name.includes('UK') || (v.lang && v.lang.includes('GB')));
       const icon = g === 'female' ? '👩' : (g === 'male' ? '👨' : '🗣️');
       const gLabel = g === 'female' ? 'Female' : (g === 'male' ? 'Male' : 'Voice');
-      opt.textContent = `${icon} [${gLabel}] ${v.name} (${v.lang})`;
+      const star = isGoogleUk ? ' ⭐' : '';
+      opt.textContent = `${icon}${star} [${gLabel}] ${v.name} (${v.lang})`;
 
       if (speechEngine.selectedVoice && speechEngine.selectedVoice.name === v.name) {
         opt.selected = true;
@@ -956,153 +990,69 @@ document.addEventListener('DOMContentLoaded', () => {
       voiceSelect.appendChild(opt);
     });
 
-    if (voiceSelect.selectedIndex === -1 && voiceSelect.options.length > 0) {
+    // Check if current selected voice is excluded or invalid
+    const isCurrentExcluded = speechEngine.selectedVoice && isExcludedVoice(speechEngine.selectedVoice, genderFilter);
+    if (voiceSelect.selectedIndex === -1 || isCurrentExcluded) {
       voiceSelect.selectedIndex = 0;
       const chosenName = voiceSelect.value;
-      speechEngine.selectedVoice = voices.find(v => v.name === chosenName) || voices[0];
-      localStorage.setItem('amat_voice_name', speechEngine.selectedVoice.name);
-    }
-  }
-
-  // Acoustic Persona Presets
-  function applyVoicePreset(preset) {
-    const voices = window.speechSynthesis.getVoices();
-    if (preset === 'jarvis') {
-      if (voiceGenderSelect) voiceGenderSelect.value = 'male';
-      if (voiceLangSelect) voiceLangSelect.value = 'en-GB';
-      speechEngine.rate = 1.0;
-      speechEngine.pitch = 0.95;
-      if (voiceRate) voiceRate.value = '1.0';
-      if (rateValue) rateValue.textContent = '1.0x';
-      if (voicePitch) voicePitch.value = '0.95';
-      if (pitchValue) pitchValue.textContent = '0.95';
-      populateVoiceSelect();
-
-      const jVoice = voices.find(v => 
-        (v.lang.startsWith('en-GB') || v.lang.startsWith('en')) &&
-        (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur') || v.name.includes('Daniel') || v.name.includes('Ryan'))
-      ) || voices.find(v => v.lang.startsWith('en-GB')) || voices[0];
-
-      if (jVoice) {
-        speechEngine.selectedVoice = jVoice;
-        if (voiceSelect) voiceSelect.value = jVoice.name;
-        localStorage.setItem('amat_voice_name', jVoice.name);
-      }
-    } else if (preset === 'friday') {
-      if (voiceGenderSelect) voiceGenderSelect.value = 'female';
-      if (voiceLangSelect) voiceLangSelect.value = 'en-GB';
-      speechEngine.rate = 1.05;
-      speechEngine.pitch = 1.1;
-      if (voiceRate) voiceRate.value = '1.05';
-      if (rateValue) rateValue.textContent = '1.05x';
-      if (voicePitch) voicePitch.value = '1.1';
-      if (pitchValue) pitchValue.textContent = '1.1';
-      populateVoiceSelect();
-
-      const fVoice = voices.find(v => 
-        (v.lang.startsWith('en-GB') || v.lang.startsWith('en-IE')) &&
-        (v.name.includes('Female') || v.name.includes('Hazel') || v.name.includes('Susan') || v.name.includes('Victoria'))
-      ) || voices.find(v => getVoiceGender(v) === 'female') || voices[0];
-
-      if (fVoice) {
-        speechEngine.selectedVoice = fVoice;
-        if (voiceSelect) voiceSelect.value = fVoice.name;
-        localStorage.setItem('amat_voice_name', fVoice.name);
-      }
-    } else if (preset === 'edith') {
-      if (voiceGenderSelect) voiceGenderSelect.value = 'female';
-      if (voiceLangSelect) voiceLangSelect.value = 'en-US';
-      speechEngine.rate = 1.0;
-      speechEngine.pitch = 1.15;
-      if (voiceRate) voiceRate.value = '1.0';
-      if (rateValue) rateValue.textContent = '1.0x';
-      if (voicePitch) voicePitch.value = '1.15';
-      if (pitchValue) pitchValue.textContent = '1.15';
-      populateVoiceSelect();
-
-      const eVoice = voices.find(v => 
-        v.lang.startsWith('en-US') &&
-        (v.name.includes('Female') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Jenny') || v.name.includes('Aria'))
-      ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-
-      if (eVoice) {
-        speechEngine.selectedVoice = eVoice;
-        if (voiceSelect) voiceSelect.value = eVoice.name;
-        localStorage.setItem('amat_voice_name', eVoice.name);
-      }
-    } else if (preset === 'core') {
-      if (voiceGenderSelect) voiceGenderSelect.value = 'male';
-      if (voiceLangSelect) voiceLangSelect.value = 'en-US';
-      speechEngine.rate = 1.05;
-      speechEngine.pitch = 0.95;
-      if (voiceRate) voiceRate.value = '1.05';
-      if (rateValue) rateValue.textContent = '1.05x';
-      if (voicePitch) voicePitch.value = '0.95';
-      if (pitchValue) pitchValue.textContent = '0.95';
-      populateVoiceSelect();
-
-      const cVoice = voices.find(v => 
-        v.lang.startsWith('en-US') &&
-        (v.name.includes('Male') || v.name.includes('David') || v.name.includes('Guy') || v.name.includes('Mark'))
-      ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-
-      if (cVoice) {
-        speechEngine.selectedVoice = cVoice;
-        if (voiceSelect) voiceSelect.value = cVoice.name;
-        localStorage.setItem('amat_voice_name', cVoice.name);
+      speechEngine.selectedVoice = voices.find(v => v.name === chosenName) || filtered[0];
+      if (speechEngine.selectedVoice) {
+        localStorage.setItem('amat_voice_name', speechEngine.selectedVoice.name);
       }
     }
-
-    localStorage.setItem('amat_voice_preset', preset);
-    localStorage.setItem('amat_voice_rate', speechEngine.rate);
-    localStorage.setItem('amat_voice_pitch', speechEngine.pitch);
-    if (voiceGenderSelect) localStorage.setItem('amat_voice_gender', voiceGenderSelect.value);
-    if (voiceLangSelect) localStorage.setItem('amat_voice_lang', voiceLangSelect.value);
   }
-
-  window.applyVoicePreset = applyVoicePreset;
-  window.populateVoiceSelect = populateVoiceSelect;
 
   // Restore saved voice preferences from localStorage
-  const savedPreset = localStorage.getItem('amat_voice_preset') || 'jarvis';
-  if (voicePresetSelect) voicePresetSelect.value = savedPreset;
-  const savedGender = localStorage.getItem('amat_voice_gender') || 'male';
-  if (voiceGenderSelect) voiceGenderSelect.value = savedGender;
-  const savedVoiceLang = localStorage.getItem('amat_voice_lang') || 'en-GB';
-  if (voiceLangSelect) voiceLangSelect.value = savedVoiceLang;
+  const savedVoiceGender = localStorage.getItem('amat_voice_gender') || 'male';
+  if (voiceGenderSelect) voiceGenderSelect.value = savedVoiceGender;
   if (voiceRate) {
     voiceRate.value = speechEngine.rate;
     if (rateValue) rateValue.textContent = `${speechEngine.rate.toFixed(1)}x`;
   }
   if (voicePitch) {
     voicePitch.value = speechEngine.pitch;
-    if (pitchValue) pitchValue.textContent = speechEngine.pitch.toFixed(2);
-  }
-
-  if (voicePresetSelect) {
-    voicePresetSelect.addEventListener('change', (e) => {
-      applyVoicePreset(e.target.value);
-    });
+    if (pitchValue) pitchValue.textContent = `${speechEngine.pitch.toFixed(1)}`;
   }
 
   if (voiceGenderSelect) {
     voiceGenderSelect.addEventListener('change', (e) => {
-      localStorage.setItem('amat_voice_gender', e.target.value);
-      if (voicePresetSelect) voicePresetSelect.value = 'custom';
-      populateVoiceSelect();
-    });
-  }
+      const newGender = e.target.value;
+      localStorage.setItem('amat_voice_gender', newGender);
+      const voices = window.speechSynthesis.getVoices();
 
-  if (voiceLangSelect) {
-    voiceLangSelect.addEventListener('change', (e) => {
-      localStorage.setItem('amat_voice_lang', e.target.value);
-      if (voicePresetSelect) voicePresetSelect.value = 'custom';
-      // Sync sensor STT language if English vs International
-      if (langSelect && e.target.value !== 'all') {
-        const matchingOpt = Array.from(langSelect.options).find(opt => opt.value.startsWith(e.target.value));
-        if (matchingOpt) {
-          langSelect.value = matchingOpt.value;
-          speechEngine.language = matchingOpt.value;
+      if (newGender === 'female') {
+        // Priority: Google UK English Female (en-GB)
+        const femaleVoice = voices.find(v => 
+          !isExcludedVoice(v, 'female') &&
+          v.name.includes('Google') && (v.name.includes('UK') || v.lang.includes('GB')) &&
+          (v.name.includes('Female') || getVoiceGender(v) === 'female')
+        ) || voices.find(v => 
+          !isExcludedVoice(v, 'female') &&
+          (v.lang === 'en-GB' || v.lang.startsWith('en-GB') || v.lang.startsWith('en-IE')) &&
+          getVoiceGender(v) === 'female'
+        ) || voices.find(v => !isExcludedVoice(v, 'female') && getVoiceGender(v) === 'female')
+          || voices.find(v => !isExcludedVoice(v, 'female')) || voices[0];
+
+        if (femaleVoice) {
+          speechEngine.selectedVoice = femaleVoice;
+          localStorage.setItem('amat_voice_name', femaleVoice.name);
+        }
+      } else if (newGender === 'male') {
+        // Priority: Google UK English Male (en-GB)
+        const maleVoice = voices.find(v => 
+          !isExcludedVoice(v, 'male') &&
+          v.name.includes('Google') && (v.name.includes('UK') || v.lang.includes('GB')) &&
+          (v.name.includes('Male') || getVoiceGender(v) === 'male')
+        ) || voices.find(v => 
+          !isExcludedVoice(v, 'male') &&
+          (v.lang === 'en-GB' || v.lang.startsWith('en-GB')) &&
+          (v.name.includes('Male') || v.name.includes('George') || v.name.includes('Oliver') || v.name.includes('Arthur'))
+        ) || voices.find(v => !isExcludedVoice(v, 'male') && (v.lang === 'en-GB' || v.lang.startsWith('en-GB')))
+          || voices.find(v => !isExcludedVoice(v, 'male')) || voices[0];
+
+        if (maleVoice) {
+          speechEngine.selectedVoice = maleVoice;
+          localStorage.setItem('amat_voice_name', maleVoice.name);
         }
       }
       populateVoiceSelect();
@@ -1117,7 +1067,6 @@ document.addEventListener('DOMContentLoaded', () => {
         speechEngine.selectedVoice = match;
         localStorage.setItem('amat_voice_name', match.name);
       }
-      if (voicePresetSelect) voicePresetSelect.value = 'custom';
     });
   }
 
@@ -1126,7 +1075,6 @@ document.addEventListener('DOMContentLoaded', () => {
       speechEngine.rate = parseFloat(e.target.value);
       if (rateValue) rateValue.textContent = `${speechEngine.rate.toFixed(2)}x`;
       localStorage.setItem('amat_voice_rate', speechEngine.rate);
-      if (voicePresetSelect) voicePresetSelect.value = 'custom';
     });
   }
 
@@ -1135,7 +1083,6 @@ document.addEventListener('DOMContentLoaded', () => {
       speechEngine.pitch = parseFloat(e.target.value);
       if (pitchValue) pitchValue.textContent = speechEngine.pitch.toFixed(2);
       localStorage.setItem('amat_voice_pitch', speechEngine.pitch);
-      if (voicePresetSelect) voicePresetSelect.value = 'custom';
     });
   }
 
@@ -1143,13 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
     testVoiceBtn.addEventListener('click', () => {
       const g = getVoiceGender(speechEngine.selectedVoice);
       const gStr = g === 'female' ? 'Female' : (g === 'male' ? 'Male' : 'Standard');
-      speechEngine.speak(`At your service, sir. Acoustic profile initialized with ${gStr} vocal telemetry for ${window.getAssistantName()}.`);
-    });
-  }
-
-  if (langSelect) {
-    langSelect.addEventListener('change', (e) => {
-      speechEngine.language = e.target.value;
+      speechEngine.speak(`At your service, sir. Vocal telemetry operational with ${gStr} profile for ${window.getAssistantName()}.`);
     });
   }
 
@@ -1157,6 +1098,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.speechSynthesis.onvoiceschanged = () => {
       populateVoiceSelect();
     };
+  }
+
+  if (langSelect) {
+    langSelect.addEventListener('change', (e) => {
+      speechEngine.language = e.target.value;
+    });
   }
 
   if (continuousMicCheck) {

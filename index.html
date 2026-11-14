@@ -262,52 +262,21 @@
 
           <!-- Voice Synthesis Settings -->
           <div class="setting-section">
-            <h3>Acoustic Profile & Vocal Synthesis (Text-to-Speech)</h3>
-            <p class="section-desc">Select an Acoustic Profile persona, customize voice types (Male / Female), and choose your preferred language protocol.</p>
-            
+            <h3>Vocal Synthesis & Acoustic Profile (Text-to-Speech)</h3>
             <div class="form-row">
-              <label for="voicePresetSelect">Acoustic Persona Presets:</label>
-              <select id="voicePresetSelect" class="form-select">
-                <option value="jarvis" selected>🇬🇧 J.A.R.V.I.S. (British Male - Paul Bettany Cadence)</option>
-                <option value="friday">🇮🇪 F.R.I.D.A.Y. (Irish/British Female)</option>
-                <option value="edith">🇺🇸 E.D.I.T.H. (American Female - Tactical HUD)</option>
-                <option value="core">🇺🇸 Stark Tech Core (American Male - Crisp)</option>
-                <option value="custom">⚙️ Custom Acoustic Configuration...</option>
-              </select>
-            </div>
-
-            <div class="form-row">
-              <label for="voiceGenderSelect">Voice Type (Gender):</label>
+              <label for="voiceGenderSelect">Vocal Profile:</label>
               <select id="voiceGenderSelect" class="form-select">
-                <option value="all">All Voice Types</option>
-                <option value="male" selected>👨 Male Voice Profiles (J.A.R.V.I.S. / Male)</option>
-                <option value="female">👩 Female Voice Profiles (F.R.I.D.A.Y. / Female)</option>
+                <option value="male" selected>👨 Male Vocal Profile (J.A.R.V.I.S. Standard)</option>
+                <option value="female">👩 Female Vocal Profile (F.R.I.D.A.Y. Standard)</option>
+                <option value="all">🌐 All System Voices</option>
               </select>
             </div>
-
-            <div class="form-row">
-              <label for="voiceLangSelect">Acoustic Language Protocol:</label>
-              <select id="voiceLangSelect" class="form-select">
-                <option value="en-GB" selected>English (United Kingdom) - J.A.R.V.I.S. Standard</option>
-                <option value="en-US">English (United States)</option>
-                <option value="all">All Installed Languages</option>
-                <option value="es">Spanish (Español)</option>
-                <option value="fr">French (Français)</option>
-                <option value="de">German (Deutsch)</option>
-                <option value="it">Italian (Italiano)</option>
-                <option value="ja">Japanese (日本語)</option>
-                <option value="zh">Chinese (中文)</option>
-                <option value="hi">Hindi (हिन्दी)</option>
-              </select>
-            </div>
-
             <div class="form-row">
               <label for="voiceSelect">Active Voice Engine:</label>
               <select id="voiceSelect" class="form-select">
                 <option value="">Default System Voice</option>
               </select>
             </div>
-
             <div class="form-row">
               <label for="voiceRate">Cadence Speed: <span id="rateValue">1.0x</span></label>
               <input type="range" id="voiceRate" min="0.5" max="2.0" step="0.05" value="1.0" class="form-range">

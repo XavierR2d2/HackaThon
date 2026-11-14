@@ -600,27 +600,6 @@ class CommandEngine {
       };
     }
 
-    // Voice Profile / Gender commands
-    if (/(switch\s+to\s+female\s+voice|change\s+voice\s+to\s+female|female\s+voice)/i.test(lower)) {
-      if (window.applyVoicePreset) window.applyVoicePreset('friday');
-      return {
-        handled: true,
-        responseText: `Acoustic profile switched to female vocal synthesis, sir.`,
-        actionTag: '👩 Voice: Female',
-        actionType: 'system'
-      };
-    }
-
-    if (/(switch\s+to\s+male\s+voice|change\s+voice\s+to\s+male|male\s+voice)/i.test(lower)) {
-      if (window.applyVoicePreset) window.applyVoicePreset('jarvis');
-      return {
-        handled: true,
-        responseText: `Acoustic profile restored to male J.A.R.V.I.S. vocal synthesis, sir.`,
-        actionTag: '👨 Voice: Male',
-        actionType: 'system'
-      };
-    }
-
     return null;
   }
 
